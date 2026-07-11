@@ -2,8 +2,8 @@ package com.stockup.backend.domain.auth.service;
 
 public interface OtpService {
 
-    void generateOtp(String phone);
+    void generateOtp(String email);
 
-    void verifyOtp(String phone, String otp);
+    void verifyOtp(String email, String otp);
 
 }

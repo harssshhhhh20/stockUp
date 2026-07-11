@@ -11,8 +11,7 @@ import java.util.Optional;
 @Component
 public class RedisOtpStore implements OtpStore {
 
-    private static final String OTP_PREFIX = "otp:";
-
+    private static final String OTP_PREFIX = "otp:email:";
     private final StringRedisTemplate redisTemplate;
     private final AppProperties appProperties;
 
@@ -25,38 +24,38 @@ public class RedisOtpStore implements OtpStore {
     }
 
     @Override
-    public void save(String phone, String otp) {
+    public void save(String email, String otp) {
 
         redisTemplate.opsForValue().set(
-                key(phone),
+                key(email),
                 otp,
                 Duration.ofSeconds(appProperties.getOtp().getExpirySeconds())
         );
     }
 
     @Override
-    public Optional<String> get(String phone) {
+    public Optional<String> get(String email) {
 
         return Optional.ofNullable(
-                redisTemplate.opsForValue().get(key(phone))
+                redisTemplate.opsForValue().get(key(email))
         );
     }
 
     @Override
-    public void delete(String phone) {
+    public void delete(String email) {
 
-        redisTemplate.delete(key(phone));
+        redisTemplate.delete(key(email));
     }
 
     @Override
-    public boolean exists(String phone) {
+    public boolean exists(String email) {
 
         return Boolean.TRUE.equals(
-                redisTemplate.hasKey(key(phone))
+                redisTemplate.hasKey(key(email))
         );
     }
 
-    private String key(String phone) {
-        return OTP_PREFIX + phone;
+    private String key(String email) {
+        return OTP_PREFIX + email;
     }
 }

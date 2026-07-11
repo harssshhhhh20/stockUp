@@ -26,11 +26,11 @@ class JwtServiceImplTest {
     @Test
     void shouldGenerateValidAccessToken() {
 
-        String token = jwtService.generateAccessToken("+919876543210");
+        String token = jwtService.generateAccessToken("abc@gmail.com");
 
         assertNotNull(token);
         assertTrue(jwtService.isTokenValid(token));
-        assertEquals("+919876543210", jwtService.extractPhone(token));
+        assertEquals("abc@gmail.com", jwtService.extractEmail(token));
     }
 
     @Test

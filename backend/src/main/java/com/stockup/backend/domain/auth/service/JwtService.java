@@ -2,11 +2,11 @@ package com.stockup.backend.domain.auth.service;
 
 public interface JwtService {
 
-    String generateAccessToken(String phone);
+    String generateAccessToken(String email);
 
-    String generateRefreshToken(String phone);
+    String generateRefreshToken(String email);
 
-    String extractPhone(String token);
+    String extractEmail(String email);
 
     boolean isTokenValid(String token);
 

@@ -44,9 +44,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
-        String phone = jwtService.extractPhone(token);
+        String email = jwtService.extractEmail(token);
 
-        var userDetails = userDetailsService.loadUserByUsername(phone);
+        var userDetails = userDetailsService.loadUserByUsername(email);
 
         var authentication =
                 new UsernamePasswordAuthenticationToken(

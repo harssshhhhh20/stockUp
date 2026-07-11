@@ -1,5 +1,6 @@
 package com.stockup.backend.domain.auth.service.impl;
 
+import com.stockup.backend.domain.auth.service.EmailService;
 import com.stockup.backend.domain.auth.service.OtpService;
 import com.stockup.backend.domain.auth.service.OtpStore;
 import com.stockup.backend.domain.auth.util.OtpGenerator;
@@ -14,35 +15,38 @@ public class OtpServiceImpl implements OtpService {
 
     private final OtpStore otpStore;
     private final OtpGenerator otpGenerator;
+    private final EmailService emailService;
 
     public OtpServiceImpl(
             OtpStore otpStore,
-            OtpGenerator otpGenerator
+            OtpGenerator otpGenerator,
+            EmailService emailService
     ) {
         this.otpStore = otpStore;
         this.otpGenerator = otpGenerator;
+        this.emailService = emailService;
     }
 
     @Override
-    public void generateOtp(String phone) {
+    public void generateOtp(String email) {
 
         String otp = otpGenerator.generate();
 
-        otpStore.save(phone, otp);
+        otpStore.save(email, otp);
 
-        log.info("OTP for {} is {}", phone, otp);
+        emailService.sendOtp(email, otp);
     }
 
     @Override
-    public void verifyOtp(String phone, String otp) {
+    public void verifyOtp(String email, String otp) {
 
-        String storedOtp = otpStore.get(phone)
+        String storedOtp = otpStore.get(email)
                 .orElseThrow(() -> new RuntimeException("OTP expired"));
 
         if (!storedOtp.equals(otp)) {
             throw new RuntimeException("Invalid OTP");
         }
 
-        otpStore.delete(phone);
+        otpStore.delete(email);
     }
 }

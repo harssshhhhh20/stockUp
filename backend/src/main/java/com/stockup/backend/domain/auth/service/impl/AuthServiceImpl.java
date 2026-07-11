@@ -9,7 +9,6 @@ import com.stockup.backend.domain.auth.service.JwtService;
 import com.stockup.backend.domain.auth.service.OtpService;
 import com.stockup.backend.domain.user.entity.User;
 import com.stockup.backend.domain.user.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,19 +32,19 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void requestOtp(RequestOtpRequest request) {
-        otpService.generateOtp(request.phone());
+        otpService.generateOtp(request.email());
     }
 
     @Override
     public AuthResponse verifyOtp(VerifyOtpRequest request) {
 
         otpService.verifyOtp(
-                request.phone(),
+                request.email(),
                 request.otp()
         );
 
         User user = userRepository
-                .findByPhone(request.phone())
+                .findByEmail(request.email())
                 .orElse(null);
 
         boolean newUser = false;
@@ -55,7 +54,7 @@ public class AuthServiceImpl implements AuthService {
             user = new User(
                     null,
                     null,
-                    request.phone(),
+                    request.email(),
                     null
             );
 

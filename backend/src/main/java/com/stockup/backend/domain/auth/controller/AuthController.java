@@ -8,7 +8,6 @@ import com.stockup.backend.domain.auth.dto.request.VerifyOtpRequest;
 import com.stockup.backend.domain.auth.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -42,15 +41,6 @@ public class AuthController {
         return ApiResponseFactory.success(
                 ResponseMessage.SUCCESS,
                 authService.verifyOtp(request)
-        );
-    }
-
-    @GetMapping("/me")
-    public ResponseEntity<?> me(Authentication authentication) {
-
-        return ApiResponseFactory.success(
-                ResponseMessage.SUCCESS,
-                authentication.getName()
         );
     }
 

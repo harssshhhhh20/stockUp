@@ -1,6 +1,7 @@
 package com.stockup.backend.domain.auth.service.impl;
 
 import com.stockup.backend.common.config.properties.AppProperties;
+import com.stockup.backend.domain.auth.exception.InvalidTokenException;
 import com.stockup.backend.domain.auth.service.JwtService;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -27,12 +28,12 @@ public class JwtServiceImpl implements JwtService {
     }
 
     @Override
-    public String generateAccessToken(String phone) {
+    public String generateAccessToken(String email) {
 
         Instant now = Instant.now();
 
         return Jwts.builder()
-                .subject(phone)
+                .subject(email)
                 .issuer(appProperties.getJwt().getIssuer())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(
@@ -46,12 +47,12 @@ public class JwtServiceImpl implements JwtService {
     }
 
     @Override
-    public String generateRefreshToken(String phone) {
+    public String generateRefreshToken(String email) {
 
         Instant now = Instant.now();
 
         return Jwts.builder()
-                .subject(phone)
+                .subject(email)
                 .issuer(appProperties.getJwt().getIssuer())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(
@@ -65,7 +66,7 @@ public class JwtServiceImpl implements JwtService {
     }
 
     @Override
-    public String extractPhone(String token) {
+    public String extractEmail(String token) {
 
         return Jwts.parser()
                 .verifyWith(secretKey)
@@ -93,10 +94,15 @@ public class JwtServiceImpl implements JwtService {
 
     @Override
     public String refreshAccessToken(String refreshToken){
-        if (!isTokenValid(refreshToken)) {
-            throw new IllegalArgumentException("Invalid refresh token.");
+        try{
+            if (!isTokenValid(refreshToken)) {
+                throw new InvalidTokenException();
+            }
+            String phone = extractEmail(refreshToken);
+            return generateAccessToken(phone);
+        }catch (Exception e){
+            e.printStackTrace();
+            throw e;
         }
-        String phone = extractPhone(refreshToken);
-        return generateAccessToken(phone);
     }
 }

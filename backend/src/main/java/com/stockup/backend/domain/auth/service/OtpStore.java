@@ -4,11 +4,11 @@ import java.util.Optional;
 
 public interface OtpStore {
 
-    void save(String phone, String otp);
+    void save(String email, String otp);
 
-    Optional<String> get(String phone);
+    Optional<String> get(String email);
 
-    void delete(String phone);
+    void delete(String email);
 
-    boolean exists(String phone);
+    boolean exists(String email);
 }
