@@ -2,9 +2,11 @@ package com.stockup.backend.common.exceptions.handler;
 
 import com.stockup.backend.common.exceptions.model.BaseException;
 import com.stockup.backend.common.response.ApiError;
+import com.stockup.backend.common.response.ApiResponse;
 import com.stockup.backend.common.response.ApiResponseFactory;
 import com.stockup.backend.common.response.ResponseMessage;
-import jakarta.servlet.http.HttpServletRequest;
+import com.stockup.backend.infrastructure.notification.email.exception.EmailDeliveryException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -51,6 +53,22 @@ public class GlobalExceptionHandler {
                 org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR,
                 ResponseMessage.INTERNAL_SERVER_ERROR,
                 List.of(new ApiError(null, "Unexpected error occurred."))
+        );
+    }
+
+    @ExceptionHandler(EmailDeliveryException.class)
+    public ResponseEntity<ApiResponse<Object>> handleEmailDeliveryException(
+            EmailDeliveryException ex
+    ) {
+        return ApiResponseFactory.failure(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                ResponseMessage.EMAIL_DELIVERY_FAILED,
+                List.of(
+                        new ApiError(
+                                null,
+                                "Unable to send verification email. Please try again later."
+                        )
+                )
         );
     }
 }
