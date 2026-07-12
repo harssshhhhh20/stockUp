@@ -1,6 +1,5 @@
-package com.stockup.backend.domain.auth.service.impl;
+package com.stockup.backend.infrastructure.notification.email.service;
 
-import com.stockup.backend.domain.auth.service.EmailService;
 import org.springframework.stereotype.Service;
 
 @Service

@@ -1,4 +1,4 @@
-package com.stockup.backend.domain.auth.service;
+package com.stockup.backend.infrastructure.notification.email.service;
 
 public interface EmailService {
 
