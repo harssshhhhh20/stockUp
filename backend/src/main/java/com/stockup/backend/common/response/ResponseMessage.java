@@ -17,7 +17,7 @@ public enum ResponseMessage {
     CONFLICT("Resource already exists."),
     UNAUTHORIZED("Authentication required."),
     FORBIDDEN("Access denied."),
-
+    EMAIL_DELIVERY_FAILED("Unable to send verification email. Please try again later."),
 
     INTERNAL_SERVER_ERROR("An unexpected error occurred.");
 
