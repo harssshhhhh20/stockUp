@@ -1,6 +1,6 @@
 package com.stockup.backend.domain.auth.service.impl;
 
-import com.stockup.backend.domain.auth.service.EmailService;
+import com.stockup.backend.infrastructure.notification.email.service.EmailService;
 import com.stockup.backend.domain.auth.service.OtpService;
 import com.stockup.backend.domain.auth.service.OtpStore;
 import com.stockup.backend.domain.auth.util.OtpGenerator;
