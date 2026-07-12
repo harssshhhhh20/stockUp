@@ -56,3 +56,11 @@ app:
     access-token-expiry-seconds: 900
     refresh-token-expiry-seconds: 604800
     secret: your-very-long-secret-key-change-this-before-production
+
+stockup:
+  email:
+    provider: brevo
+    base-url: https://api.brevo.com
+    api-key: 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
+    sender-email: g79844479@gmail.com
+    sender-name: StockUp
