@@ -18,8 +18,10 @@ public enum ResponseMessage {
     UNAUTHORIZED("Authentication required."),
     FORBIDDEN("Access denied."),
     EMAIL_DELIVERY_FAILED("Unable to send verification email. Please try again later."),
+    MERCHANT_REGISTERED_SUCCESSFULLY("Created Merchant"),
 
-    INTERNAL_SERVER_ERROR("An unexpected error occurred.");
+    INTERNAL_SERVER_ERROR("An unexpected error occurred."),
+    MERCHANT_ALREADY_EXISTS("Merchant Already Registered");
 
     private final String message;
 

@@ -1,4 +1,4 @@
-package com.stockup.backend.domain.auth.redis;
+package com.stockup.backend.infrastructure.cache.redis;
 
 import com.stockup.backend.common.config.properties.AppProperties;
 import com.stockup.backend.domain.auth.service.OtpStore;
