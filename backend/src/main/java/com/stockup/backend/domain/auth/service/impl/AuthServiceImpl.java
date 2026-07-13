@@ -51,12 +51,7 @@ public class AuthServiceImpl implements AuthService {
 
         if (user == null) {
 
-            user = new User(
-                    null,
-                    null,
-                    request.email(),
-                    null
-            );
+            user = new User(request.email());
 
             user.verify();
 
@@ -66,8 +61,8 @@ public class AuthServiceImpl implements AuthService {
         }
 
         return new AuthResponse(
-                jwtService.generateAccessToken(user.getPhone()),
-                jwtService.generateRefreshToken(user.getPhone()),
+                jwtService.generateAccessToken(request.email()),
+                jwtService.generateRefreshToken(request.email()),
                 newUser
         );
     }

@@ -5,6 +5,7 @@ import com.stockup.backend.common.response.ApiError;
 import com.stockup.backend.common.response.ApiResponse;
 import com.stockup.backend.common.response.ApiResponseFactory;
 import com.stockup.backend.common.response.ResponseMessage;
+import com.stockup.backend.domain.merchant.exception.MerchantAlreadyExistsException;
 import com.stockup.backend.infrastructure.notification.email.exception.EmailDeliveryException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -69,6 +70,17 @@ public class GlobalExceptionHandler {
                                 "Unable to send verification email. Please try again later."
                         )
                 )
+        );
+    }
+
+    @ExceptionHandler(MerchantAlreadyExistsException.class)
+    public ResponseEntity<ApiResponse<Object>> handleMerchantAlreadyExists(
+            MerchantAlreadyExistsException ex
+    ) {
+        return ApiResponseFactory.failure(
+                HttpStatus.CONFLICT,
+                ResponseMessage.MERCHANT_ALREADY_EXISTS,
+                List.of(new ApiError(null, ex.getMessage()))
         );
     }
 }

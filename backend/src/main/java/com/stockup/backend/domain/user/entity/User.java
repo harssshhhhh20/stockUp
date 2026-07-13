@@ -18,7 +18,7 @@ public class User extends AuditableEntity {
     @Column(name = "last_name", length = 100)
     private String lastName;
 
-    @Column(nullable = false, unique = true, length = 15)
+    @Column(unique = true, length = 15)
     private String phone;
 
     @Column(unique = true)
@@ -41,15 +41,7 @@ public class User extends AuditableEntity {
         // Required by JPA
     }
 
-    public User(
-            String firstName,
-            String lastName,
-            String phone,
-            String email
-    ) {
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.phone = phone;
+    public User(String email) {
         this.email = email;
         this.accountStatus = AccountStatus.PENDING_VERIFICATION;
         this.roles.add(Role.CUSTOMER);
@@ -79,10 +71,6 @@ public class User extends AuditableEntity {
         return Set.copyOf(roles);
     }
 
-    public void verify() {
-        this.accountStatus = AccountStatus.ACTIVE;
-    }
-
     public void suspend() {
         this.accountStatus = AccountStatus.SUSPENDED;
     }
@@ -93,5 +81,16 @@ public class User extends AuditableEntity {
 
     public boolean hasRole(Role role) {
         return roles.contains(role);
+    }
+
+    public void verify() {
+
+        if (accountStatus != AccountStatus.PENDING_VERIFICATION) {
+            throw new IllegalStateException(
+                    "User can only be verified from PENDING_VERIFICATION state."
+            );
+        }
+
+        this.accountStatus = AccountStatus.ACTIVE;
     }
 }
