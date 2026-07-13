@@ -19,9 +19,12 @@ public enum ResponseMessage {
     FORBIDDEN("Access denied."),
     EMAIL_DELIVERY_FAILED("Unable to send verification email. Please try again later."),
     MERCHANT_REGISTERED_SUCCESSFULLY("Created Merchant"),
+    MERCHANT_NOT_FOUND("Merchant Not found"),
 
     INTERNAL_SERVER_ERROR("An unexpected error occurred."),
-    MERCHANT_ALREADY_EXISTS("Merchant Already Registered");
+    MERCHANT_ALREADY_EXISTS("Merchant Already Registered"),
+    STORE_CREATED("Store Registered Successfully"),
+    STORE_ALREADY_EXISTS("Store already exists");
 
     private final String message;
 
