@@ -6,6 +6,8 @@ import com.stockup.backend.common.response.ApiResponse;
 import com.stockup.backend.common.response.ApiResponseFactory;
 import com.stockup.backend.common.response.ResponseMessage;
 import com.stockup.backend.domain.merchant.exception.MerchantAlreadyExistsException;
+import com.stockup.backend.domain.merchant.exception.MerchantNotFoundException;
+import com.stockup.backend.domain.store.exception.StoreAlreadyExistsException;
 import com.stockup.backend.infrastructure.notification.email.exception.EmailDeliveryException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -80,6 +82,28 @@ public class GlobalExceptionHandler {
         return ApiResponseFactory.failure(
                 HttpStatus.CONFLICT,
                 ResponseMessage.MERCHANT_ALREADY_EXISTS,
+                List.of(new ApiError(null, ex.getMessage()))
+        );
+    }
+
+    @ExceptionHandler(MerchantNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleMerchantNotFound(
+            MerchantNotFoundException ex
+    ) {
+        return ApiResponseFactory.failure(
+                HttpStatus.CONFLICT,
+                ResponseMessage.MERCHANT_NOT_FOUND,
+                List.of(new ApiError(null, ex.getMessage()))
+        );
+    }
+
+    @ExceptionHandler(StoreAlreadyExistsException.class)
+    public ResponseEntity<ApiResponse<Object>> handleStoreAlreadyExists(
+            StoreAlreadyExistsException ex
+    ) {
+        return ApiResponseFactory.failure(
+                HttpStatus.CONFLICT,
+                ResponseMessage.STORE_ALREADY_EXISTS,
                 List.of(new ApiError(null, ex.getMessage()))
         );
     }
