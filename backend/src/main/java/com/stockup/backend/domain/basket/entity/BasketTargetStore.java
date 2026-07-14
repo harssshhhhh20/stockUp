@@ -7,7 +7,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "basket_selected_stores")
+@Table(name = "basket_target_stores")
 @Getter
 @Setter
 @Builder

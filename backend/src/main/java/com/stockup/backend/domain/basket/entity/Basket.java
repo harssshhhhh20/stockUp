@@ -1,8 +1,10 @@
 package com.stockup.backend.domain.basket.entity;
 
 import com.stockup.backend.common.persistence.entity.AuditableEntity;
+import com.stockup.backend.domain.basket.enums.BasketItemUnit;
 import com.stockup.backend.domain.basket.enums.BasketStatus;
 import com.stockup.backend.domain.basket.enums.BasketTargetMode;
+import com.stockup.backend.domain.store.entity.Store;
 import com.stockup.backend.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -19,7 +21,6 @@ import java.util.List;
 @Entity
 @Table(name = "baskets")
 @Getter
-@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -71,6 +72,52 @@ public class Basket extends AuditableEntity {
             orphanRemoval = true
     )
     @Builder.Default
-    private List<BasketTargetStore> selectedStores = new ArrayList<>();
+    private List<BasketTargetStore> targetStores = new ArrayList<>();
+
+    public void addItem(
+            String productName,
+            BigDecimal quantity,
+            BasketItemUnit unit,
+            String brand,
+            String notes
+    ) {
+        BasketItem item = BasketItem.builder()
+                .basket(this)
+                .productName(productName)
+                .quantity(quantity)
+                .unit(unit)
+                .brand(brand)
+                .notes(notes)
+                .build();
+
+        items.add(item);
+    }
+
+    public void addTargetStore(Store store) {
+        BasketTargetStore targetStore = BasketTargetStore.builder()
+                .basket(this)
+                .store(store)
+                .build();
+
+        targetStores.add(targetStore);
+    }
+
+    public static Basket create(
+            User customer,
+            BasketTargetMode targetMode,
+            Integer searchRadiusMeters,
+            BigDecimal basketLatitude,
+            BigDecimal basketLongitude
+    ) {
+        return Basket.builder()
+                .customer(customer)
+                .targetMode(targetMode)
+                .status(BasketStatus.ACTIVE)
+                .searchRadiusMeters(searchRadiusMeters)
+                .basketLatitude(basketLatitude)
+                .basketLongitude(basketLongitude)
+                .expiresAt(LocalDateTime.now().plusMinutes(15))
+                .build();
+    }
 
 }
