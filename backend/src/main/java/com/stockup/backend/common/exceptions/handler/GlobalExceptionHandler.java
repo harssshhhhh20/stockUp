@@ -9,6 +9,7 @@ import com.stockup.backend.domain.merchant.exception.MerchantAlreadyExistsExcept
 import com.stockup.backend.domain.merchant.exception.MerchantNotFoundException;
 import com.stockup.backend.domain.store.exception.StoreAlreadyExistsException;
 import com.stockup.backend.infrastructure.notification.email.exception.EmailDeliveryException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.List;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -52,13 +54,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleUnexpectedException(Exception exception) {
 
+        log.error("Unhandled exception", exception);
+
         return ApiResponseFactory.failure(
-                org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR,
+                HttpStatus.INTERNAL_SERVER_ERROR,
                 ResponseMessage.INTERNAL_SERVER_ERROR,
                 List.of(new ApiError(null, "Unexpected error occurred."))
         );
     }
-
     @ExceptionHandler(EmailDeliveryException.class)
     public ResponseEntity<ApiResponse<Object>> handleEmailDeliveryException(
             EmailDeliveryException ex

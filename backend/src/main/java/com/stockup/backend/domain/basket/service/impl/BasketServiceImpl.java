@@ -14,6 +14,7 @@ import com.stockup.backend.domain.basket.exception.ActiveBasketAlreadyExistsExce
 import com.stockup.backend.domain.basket.exception.InvalidBasketRequestException;
 import com.stockup.backend.domain.basket.repository.BasketRepository;
 import com.stockup.backend.domain.basket.service.BasketService;
+import com.stockup.backend.domain.broadcast.service.BroadcastService;
 import com.stockup.backend.domain.store.entity.Store;
 import com.stockup.backend.domain.store.repository.StoreRepository;
 import com.stockup.backend.domain.user.entity.User;
@@ -32,6 +33,7 @@ public class BasketServiceImpl implements BasketService {
     private final BasketRepository basketRepository;
     private final StoreRepository storeRepository;
     private final CurrentUserService currentUserService;
+    private final BroadcastService broadcastService;
 
     @Override
     public CreateBasketResponse createBasket(CreateBasketRequest request) {
@@ -76,6 +78,8 @@ public class BasketServiceImpl implements BasketService {
         }
 
         Basket savedBasket = basketRepository.save(basket);
+
+        broadcastService.broadcastBasket(savedBasket);
 
         return new CreateBasketResponse(savedBasket.getId());
     }
