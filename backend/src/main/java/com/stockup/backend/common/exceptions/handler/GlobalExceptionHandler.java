@@ -5,6 +5,7 @@ import com.stockup.backend.common.response.ApiError;
 import com.stockup.backend.common.response.ApiResponse;
 import com.stockup.backend.common.response.ApiResponseFactory;
 import com.stockup.backend.common.response.ResponseMessage;
+import com.stockup.backend.domain.broadcast.exception.NoTargetStoresFoundException;
 import com.stockup.backend.domain.merchant.exception.MerchantAlreadyExistsException;
 import com.stockup.backend.domain.merchant.exception.MerchantNotFoundException;
 import com.stockup.backend.domain.store.exception.StoreAlreadyExistsException;
@@ -110,4 +111,6 @@ public class GlobalExceptionHandler {
                 List.of(new ApiError(null, ex.getMessage()))
         );
     }
+
+    
 }

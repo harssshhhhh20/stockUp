@@ -27,6 +27,12 @@ public record CreateStoreRequest(
         String postalCode,
 
         @NotBlank
-        String country
+        String country,
+
+        @NotNull
+        Double latitude,
+
+        @NotNull
+        Double longitude
 ) {
 }
