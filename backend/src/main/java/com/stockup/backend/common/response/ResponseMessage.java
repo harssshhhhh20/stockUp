@@ -20,6 +20,7 @@ public enum ResponseMessage {
     EMAIL_DELIVERY_FAILED("Unable to send verification email. Please try again later."),
     MERCHANT_REGISTERED_SUCCESSFULLY("Created Merchant"),
     MERCHANT_NOT_FOUND("Merchant Not found"),
+    MERCHANT_OFFER_SUBMITTED_SUCCESSFULLY("Merchant offer submitted successfully"),
 
     INTERNAL_SERVER_ERROR("An unexpected error occurred."),
     MERCHANT_ALREADY_EXISTS("Merchant Already Registered"),

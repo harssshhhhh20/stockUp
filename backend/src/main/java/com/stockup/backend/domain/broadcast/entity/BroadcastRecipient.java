@@ -7,6 +7,7 @@ import com.stockup.backend.domain.store.entity.Store;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Getter
@@ -35,4 +36,16 @@ public class BroadcastRecipient extends AuditableEntity {
 
     @Column(name = "responded_at")
     private LocalDateTime respondedAt;
+
+    public void markResponded() {
+
+        if (this.status != BroadcastRecipientStatus.VIEWED) {
+            throw new IllegalStateException(
+                    "Only viewed broadcast recipients can be marked as responded."
+            );
+        }
+
+        this.status = BroadcastRecipientStatus.RESPONDED;
+        this.respondedAt = LocalDateTime.now();
+    }
 }
