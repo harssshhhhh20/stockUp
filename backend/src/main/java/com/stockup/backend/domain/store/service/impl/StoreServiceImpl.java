@@ -55,6 +55,11 @@ public class StoreServiceImpl implements StoreService {
                 request.country()
         );
 
+        store.updateCoordinates(
+                request.latitude(),
+                request.longitude()
+        );
+
         storeRepository.save(store);
     }
 }
