@@ -98,10 +98,9 @@ public class JwtServiceImpl implements JwtService {
             if (!isTokenValid(refreshToken)) {
                 throw new InvalidTokenException();
             }
-            String phone = extractEmail(refreshToken);
-            return generateAccessToken(phone);
+            String email = extractEmail(refreshToken);
+            return generateAccessToken(email);
         }catch (Exception e){
-            e.printStackTrace();
             throw e;
         }
     }

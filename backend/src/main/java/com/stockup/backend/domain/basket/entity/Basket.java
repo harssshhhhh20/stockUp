@@ -41,17 +41,9 @@ public class Basket extends AuditableEntity {
     @Column(nullable = false)
     private BasketStatus status;
 
-    /**
-     * Search radius in meters.
-     * Applicable only when targetMode = NEARBY.
-     */
     @Column(name = "search_radius")
     private Integer searchRadiusMeters;
 
-    /**
-     * Location where the basket was created.
-     * This remains immutable throughout the basket lifecycle.
-     */
     @Column(name = "basket_latitude", nullable = false, precision = 10, scale = 7)
     private BigDecimal basketLatitude;
 
@@ -96,6 +88,7 @@ public class Basket extends AuditableEntity {
         items.add(item);
     }
 
+
     public void addTargetStore(Store store) {
         BasketTargetStore targetStore = BasketTargetStore.builder()
                 .basket(this)
@@ -121,6 +114,44 @@ public class Basket extends AuditableEntity {
                 .basketLongitude(basketLongitude)
                 .expiresAt(LocalDateTime.now().plusMinutes(15))
                 .build();
+    }
+
+    public void reserve() {
+        if (status != BasketStatus.ACTIVE) {
+            throw new IllegalStateException(
+                    "Only active baskets can be reserved."
+            );
+        }
+
+        this.status = BasketStatus.RESERVED;
+    }
+    public void expire() {
+        if (status != BasketStatus.ACTIVE) {
+            throw new IllegalStateException(
+                    "Only active baskets can be expired."
+            );
+        }
+
+        this.status = BasketStatus.EXPIRED;
+    }
+
+    public void cancel() {
+        if (status != BasketStatus.ACTIVE) {
+            throw new IllegalStateException(
+                    "Only active baskets can be cancelled."
+            );
+        }
+
+        this.status = BasketStatus.CANCELLED;
+    }
+    public void activate() {
+        if (status != BasketStatus.RESERVED) {
+            throw new IllegalStateException(
+                    "Only reserved baskets can be activated."
+            );
+        }
+
+        this.status = BasketStatus.ACTIVE;
     }
 
 }

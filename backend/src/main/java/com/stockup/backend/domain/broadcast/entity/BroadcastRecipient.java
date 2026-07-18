@@ -48,4 +48,24 @@ public class BroadcastRecipient extends AuditableEntity {
         this.status = BroadcastRecipientStatus.RESPONDED;
         this.respondedAt = LocalDateTime.now();
     }
+    public void markViewed() {
+        if (status != BroadcastRecipientStatus.PENDING) {
+            throw new IllegalStateException(
+                    "Only pending broadcast recipients can be marked as viewed."
+            );
+        }
+
+        this.status = BroadcastRecipientStatus.VIEWED;
+        this.viewedAt = LocalDateTime.now();
+    }
+    public void expire() {
+        if (status == BroadcastRecipientStatus.RESPONDED
+                || status == BroadcastRecipientStatus.EXPIRED) {
+            throw new IllegalStateException(
+                    "Only pending or viewed broadcast recipients can be expired."
+            );
+        }
+
+        this.status = BroadcastRecipientStatus.EXPIRED;
+    }
 }
