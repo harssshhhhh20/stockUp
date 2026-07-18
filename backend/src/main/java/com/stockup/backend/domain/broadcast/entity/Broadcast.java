@@ -62,4 +62,29 @@ public class Broadcast extends AuditableEntity {
                 .build();
     }
 
+    public void complete() {
+        validateStatus(BroadcastStatus.IN_PROGRESS);
+        this.status = BroadcastStatus.COMPLETED;
+        this.completedAt = LocalDateTime.now();
+    }
+
+    private void validateStatus(BroadcastStatus expectedStatus) {
+        if (this.status != expectedStatus) {
+            throw new IllegalStateException(
+                    "Broadcast must be in " + expectedStatus + " status."
+            );
+        }
+    }
+    public void expire() {
+        validateStatus(BroadcastStatus.IN_PROGRESS);
+
+        this.status = BroadcastStatus.EXPIRED;
+    }
+
+    public void cancel() {
+        validateStatus(BroadcastStatus.IN_PROGRESS);
+
+        this.status = BroadcastStatus.CANCELLED;
+    }
+
 }

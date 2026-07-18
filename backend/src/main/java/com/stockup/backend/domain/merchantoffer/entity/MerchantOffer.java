@@ -84,4 +84,28 @@ public class MerchantOffer extends AuditableEntity {
         }
         return offer;
     }
+    public void markReserved() {
+        validateStatus(MerchantOfferStatus.SUBMITTED);
+        this.status = MerchantOfferStatus.RESERVED;
+    }
+    public void markNotSelected() {
+        validateStatus(MerchantOfferStatus.SUBMITTED);
+        this.status = MerchantOfferStatus.NOT_SELECTED;
+    }
+    private void validateStatus(MerchantOfferStatus expectedStatus) {
+        if (this.status != expectedStatus) {
+            throw new IllegalStateException(
+                    "Merchant offer must be in " + expectedStatus + " status."
+            );
+        }
+    }
+    public void unreserve() {
+        if (status != MerchantOfferStatus.RESERVED) {
+            throw new IllegalStateException(
+                    "Only reserved offers can be unreserved."
+            );
+        }
+
+        this.status = MerchantOfferStatus.SUBMITTED;
+    }
 }

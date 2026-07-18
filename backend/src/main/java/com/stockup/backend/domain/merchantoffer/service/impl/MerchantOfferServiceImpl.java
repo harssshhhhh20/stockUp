@@ -46,11 +46,16 @@ public class MerchantOfferServiceImpl implements MerchantOfferService {
                                 "Broadcast recipient not found."
                         ));
         User currentUser = currentUserService.getCurrentUser();
+        System.out.println("Current user: " + currentUser.getEmail());
 
         Merchant merchant = merchantRepository.findByUser(currentUser)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Merchant not found for authenticated user."
                 ));
+        System.out.println("Authenticated Merchant ID: {}"+ merchant.getId());
+        System.out.println("Broadcast Merchant ID: {}"+ broadcastRecipient.getStore().getMerchant().getId());
+        System.out.println("Authenticated User: {}"+ currentUser.getEmail());
+        System.out.println("Recipient ID: {}"+ broadcastRecipient.getId());
         if (!broadcastRecipient.getStore()
                 .getMerchant()
                 .getId()
