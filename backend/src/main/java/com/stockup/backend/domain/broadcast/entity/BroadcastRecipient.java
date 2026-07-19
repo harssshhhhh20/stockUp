@@ -8,7 +8,6 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -32,10 +31,10 @@ public class BroadcastRecipient extends AuditableEntity {
     private BroadcastRecipientStatus status;
 
     @Column(name = "viewed_at")
-    private LocalDateTime viewedAt;
+    private Instant viewedAt;
 
     @Column(name = "responded_at")
-    private LocalDateTime respondedAt;
+    private Instant respondedAt;
 
     public void markResponded() {
 
@@ -46,7 +45,7 @@ public class BroadcastRecipient extends AuditableEntity {
         }
 
         this.status = BroadcastRecipientStatus.RESPONDED;
-        this.respondedAt = LocalDateTime.now();
+        this.respondedAt = Instant.now();
     }
     public void markViewed() {
         if (status != BroadcastRecipientStatus.PENDING) {
@@ -56,7 +55,7 @@ public class BroadcastRecipient extends AuditableEntity {
         }
 
         this.status = BroadcastRecipientStatus.VIEWED;
-        this.viewedAt = LocalDateTime.now();
+        this.viewedAt = Instant.now();
     }
     public void expire() {
         if (status == BroadcastRecipientStatus.RESPONDED

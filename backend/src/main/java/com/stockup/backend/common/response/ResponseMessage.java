@@ -30,9 +30,12 @@ public enum ResponseMessage {
     BASKET_CREATED("Basket Created Successfully"),
     BASKET_HISTORY_FETCHED("Found your basket history"),
     BASKET_FETCHED("Basket fetched successfully"),
+    PENDING_BROADCAST_BASKET_EXISTS("Basket still in broadcast"),
+
     RESERVATION_SUCCESS("Reservation created successfully."),
     RESERVATIONS_FETCHED("Reservation fetched successfully"),
     RESERVATION_FETCHED("Fetched required reservation");
+
 
     private final String message;
 

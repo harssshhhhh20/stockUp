@@ -8,10 +8,11 @@ import com.stockup.backend.domain.basket.dto.response.BasketHistoryResponse;
 import com.stockup.backend.domain.basket.dto.response.BasketItemResponse;
 import com.stockup.backend.domain.basket.dto.response.CreateBasketResponse;
 import com.stockup.backend.domain.basket.entity.Basket;
-import com.stockup.backend.domain.basket.enums.BasketTargetMode;
 import com.stockup.backend.domain.basket.enums.BasketStatus;
-import com.stockup.backend.domain.basket.exception.ActiveBasketAlreadyExistsException;
+import com.stockup.backend.domain.basket.enums.BasketTargetMode;
+
 import com.stockup.backend.domain.basket.exception.InvalidBasketRequestException;
+import com.stockup.backend.domain.basket.exception.PendingBroadcastAlreadyExistsException;
 import com.stockup.backend.domain.basket.repository.BasketRepository;
 import com.stockup.backend.domain.basket.service.BasketService;
 import com.stockup.backend.domain.broadcast.service.BroadcastService;
@@ -40,8 +41,11 @@ public class BasketServiceImpl implements BasketService {
 
         User customer = currentUserService.getCurrentUser();
 
-        if (basketRepository.existsByCustomerAndStatus(customer, BasketStatus.ACTIVE)) {
-            throw new ActiveBasketAlreadyExistsException("You already have an active basket.");
+        if (basketRepository.existsByCustomerAndStatus(
+                customer,
+                BasketStatus.PENDING_BROADCAST
+        )) {
+            throw new PendingBroadcastAlreadyExistsException("One basket is still in broadcast");
         }
 
         validateCreateBasketRequest(request);
@@ -78,8 +82,6 @@ public class BasketServiceImpl implements BasketService {
         }
 
         Basket savedBasket = basketRepository.save(basket);
-
-        broadcastService.broadcastBasket(savedBasket);
 
         return new CreateBasketResponse(savedBasket.getId());
     }

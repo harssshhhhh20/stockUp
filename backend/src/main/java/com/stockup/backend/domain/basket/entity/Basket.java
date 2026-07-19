@@ -4,9 +4,6 @@ import com.stockup.backend.common.persistence.entity.AuditableEntity;
 import com.stockup.backend.domain.basket.enums.BasketItemUnit;
 import com.stockup.backend.domain.basket.enums.BasketStatus;
 import com.stockup.backend.domain.basket.enums.BasketTargetMode;
-import com.stockup.backend.domain.broadcast.entity.BroadcastRecipient;
-import com.stockup.backend.domain.broadcast.entity.enums.BroadcastRecipientStatus;
-import com.stockup.backend.domain.merchant.entity.Merchant;
 import com.stockup.backend.domain.store.entity.Store;
 import com.stockup.backend.domain.user.entity.User;
 import jakarta.persistence.*;
@@ -14,10 +11,10 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,7 +48,10 @@ public class Basket extends AuditableEntity {
     private BigDecimal basketLongitude;
 
     @Column(name = "expires_at", nullable = false)
-    private LocalDateTime expiresAt;
+    private Instant expiresAt;
+
+    @Column(name = "broadcast_at", nullable = false)
+    private Instant broadcastAt;
 
     @OneToMany(
             mappedBy = "basket",
@@ -105,53 +105,42 @@ public class Basket extends AuditableEntity {
             BigDecimal basketLatitude,
             BigDecimal basketLongitude
     ) {
+        Instant broadcastAt = Instant.now().plusSeconds(10);
+
         return Basket.builder()
                 .customer(customer)
                 .targetMode(targetMode)
-                .status(BasketStatus.ACTIVE)
+                .status(BasketStatus.PENDING_BROADCAST)
+                .broadcastAt(broadcastAt)
                 .searchRadiusMeters(searchRadiusMeters)
                 .basketLatitude(basketLatitude)
                 .basketLongitude(basketLongitude)
-                .expiresAt(LocalDateTime.now().plusMinutes(15))
+                .expiresAt(broadcastAt.plus(15, ChronoUnit.MINUTES))
                 .build();
     }
 
     public void reserve() {
-        if (status != BasketStatus.ACTIVE) {
-            throw new IllegalStateException(
-                    "Only active baskets can be reserved."
-            );
-        }
-
+        requireStatus(BasketStatus.ACTIVE);
         this.status = BasketStatus.RESERVED;
     }
     public void expire() {
-        if (status != BasketStatus.ACTIVE) {
-            throw new IllegalStateException(
-                    "Only active baskets can be expired."
-            );
-        }
-
+        requireStatus(BasketStatus.ACTIVE);
         this.status = BasketStatus.EXPIRED;
     }
 
     public void cancel() {
-        if (status != BasketStatus.ACTIVE) {
-            throw new IllegalStateException(
-                    "Only active baskets can be cancelled."
-            );
-        }
-
+        requireStatus(BasketStatus.ACTIVE);
         this.status = BasketStatus.CANCELLED;
     }
-    public void activate() {
-        if (status != BasketStatus.RESERVED) {
-            throw new IllegalStateException(
-                    "Only reserved baskets can be activated."
-            );
-        }
-
+    public void publish() {
+        requireStatus(BasketStatus.PENDING_BROADCAST);
         this.status = BasketStatus.ACTIVE;
     }
-
+    private void requireStatus(BasketStatus expectedStatus) {
+        if (status != expectedStatus) {
+            throw new IllegalStateException(
+                    "Expected basket status " + expectedStatus + " but was " + status + "."
+            );
+        }
+    }
 }

@@ -6,7 +6,7 @@ import com.stockup.backend.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,6 +22,10 @@ public interface BasketRepository extends JpaRepository<Basket, UUID> {
 
     List<Basket> findAllByStatusAndExpiresAtBefore(
             BasketStatus status,
-            LocalDateTime expiresAt
+            Instant expiresAt
+    );
+    List<Basket> findByStatusAndBroadcastAtLessThanEqual(
+            BasketStatus status,
+            Instant broadcastAt
     );
 }

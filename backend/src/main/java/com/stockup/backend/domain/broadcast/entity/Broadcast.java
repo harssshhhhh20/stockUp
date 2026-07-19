@@ -9,7 +9,7 @@ import com.stockup.backend.domain.store.entity.Store;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,7 +40,7 @@ public class Broadcast extends AuditableEntity {
     private BroadcastStatus status;
 
     @Column(name = "completed_at")
-    private LocalDateTime completedAt;
+    private Instant completedAt;
 
     public void addRecipient(Store store) {
 
@@ -65,7 +65,7 @@ public class Broadcast extends AuditableEntity {
     public void complete() {
         validateStatus(BroadcastStatus.IN_PROGRESS);
         this.status = BroadcastStatus.COMPLETED;
-        this.completedAt = LocalDateTime.now();
+        this.completedAt = Instant.now();
     }
 
     private void validateStatus(BroadcastStatus expectedStatus) {

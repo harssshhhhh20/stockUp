@@ -12,7 +12,6 @@ import com.stockup.backend.domain.broadcast.repository.BroadcastRepository;
 import com.stockup.backend.domain.broadcast.service.BroadcastService;
 import com.stockup.backend.domain.merchant.entity.Merchant;
 import com.stockup.backend.domain.merchant.repository.MerchantRepository;
-import com.stockup.backend.domain.merchant.service.MerchantService;
 import com.stockup.backend.domain.store.entity.Store;
 import com.stockup.backend.domain.store.repository.StoreRepository;
 import com.stockup.backend.domain.user.entity.User;

@@ -1,6 +1,6 @@
-package com.stockup.backend.common.security.impl;
+package com.stockup.backend.common.security;
 
-import com.stockup.backend.common.security.CurrentUserService;
+
 import com.stockup.backend.domain.user.entity.User;
 import com.stockup.backend.domain.user.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
