@@ -3,9 +3,7 @@ package com.stockup.backend.domain.basket.scheduler;
 import com.stockup.backend.domain.basket.entity.Basket;
 import com.stockup.backend.domain.basket.enums.BasketStatus;
 import com.stockup.backend.domain.basket.repository.BasketRepository;
-import com.stockup.backend.domain.broadcast.entity.Broadcast;
 import com.stockup.backend.domain.broadcast.entity.BroadcastRecipient;
-
 import com.stockup.backend.domain.broadcast.entity.enums.BroadcastRecipientStatus;
 import com.stockup.backend.domain.broadcast.repository.BroadcastRecipientRepository;
 import com.stockup.backend.domain.broadcast.repository.BroadcastRepository;
@@ -14,7 +12,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Component
@@ -32,7 +30,7 @@ public class BasketExpiryScheduler {
         List<Basket> expiredBaskets =
                 basketRepository.findAllByStatusAndExpiresAtBefore(
                         BasketStatus.ACTIVE,
-                        LocalDateTime.now()
+                        Instant.now()
                 );
 
         for (Basket basket : expiredBaskets) {

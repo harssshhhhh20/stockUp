@@ -31,12 +31,8 @@ public class ReservationExpiryScheduler {
                 );
 
         for (Reservation reservation : reservations) {
-
             reservation.expire();
-
             reservation.getMerchantOffer().unreserve();
-
-            reservation.getBasket().activate();
         }
     }
 }

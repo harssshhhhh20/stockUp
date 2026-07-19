@@ -4,5 +4,6 @@ public enum BasketStatus {
     ACTIVE,
     EXPIRED,
     RESERVED,
+    PENDING_BROADCAST,
     CANCELLED
 }

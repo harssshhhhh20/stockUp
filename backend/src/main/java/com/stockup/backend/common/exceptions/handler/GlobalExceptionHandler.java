@@ -5,6 +5,7 @@ import com.stockup.backend.common.response.ApiError;
 import com.stockup.backend.common.response.ApiResponse;
 import com.stockup.backend.common.response.ApiResponseFactory;
 import com.stockup.backend.common.response.ResponseMessage;
+import com.stockup.backend.domain.basket.exception.PendingBroadcastAlreadyExistsException;
 import com.stockup.backend.domain.broadcast.exception.NoTargetStoresFoundException;
 import com.stockup.backend.domain.merchant.exception.MerchantAlreadyExistsException;
 import com.stockup.backend.domain.merchant.exception.MerchantNotFoundException;
@@ -54,8 +55,6 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleUnexpectedException(Exception exception) {
-
-        log.error("Unhandled exception", exception);
 
         return ApiResponseFactory.failure(
                 HttpStatus.INTERNAL_SERVER_ERROR,
@@ -112,5 +111,15 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(PendingBroadcastAlreadyExistsException.class)
+    public ResponseEntity<ApiResponse<Object>> handlePendingBasket(
+            PendingBroadcastAlreadyExistsException ex
+    ){
+        return ApiResponseFactory.failure(
+                HttpStatus.CONFLICT,
+                ResponseMessage.PENDING_BROADCAST_BASKET_EXISTS,
+                List.of(new ApiError(null, ex.getMessage()))
+        );
+    }
     
 }
