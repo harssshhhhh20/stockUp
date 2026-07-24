@@ -24,3 +24,7 @@
         3. thinking to add that cancellation should also not be allowed till whole active    period like shut the cancellation window for merchant also before 3 min of expiry
         4. Bharosa Score is something i invented which calculates how much points to be given or taken based on the entry if cancelled without any reason and customer complained then big loss also if viewed and then not fulfilling the order again a huge loss
         5. Need to work on this before leaving i.e. 25th.
+
+25/07/26:
+    -Almost completed the new reservation only controller is left
+    -Will create the notification system for the customer and merchant for reservation both push and email no sms as it costs.
