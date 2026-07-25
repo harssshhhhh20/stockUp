@@ -121,7 +121,11 @@ public class Reservation extends AuditableEntity {
      */
     public void activate(String otp) {
         requireStatus(ReservationStatus.PENDING_NOTIFICATION);
-
+        if (otp == null || !otp.matches("\\d{6}")) {
+            throw new InvalidOtpException(
+                    "OTP must be exactly 6 digits."
+            );
+        }
         Instant now = Instant.now();
         this.otp = otp;
         activeAt = now;
@@ -156,24 +160,6 @@ public class Reservation extends AuditableEntity {
 
         cancellationReason = reason;
         status = ReservationStatus.MERCHANT_CANCELLED;
-    }
-
-    public void assignOtp(String otp) {
-        requireStatus(ReservationStatus.ACTIVE);
-
-        if (this.otp != null) {
-            throw new OtpAlreadyGeneratedException(
-                    "OTP has already been assigned."
-            );
-        }
-
-        if (otp == null || !otp.matches("\\d{6}")) {
-            throw new InvalidOtpException(
-                    "OTP must be exactly 6 digits."
-            );
-        }
-
-        this.otp = otp;
     }
 
     public void complete(String otp) {

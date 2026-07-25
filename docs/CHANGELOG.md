@@ -25,6 +25,10 @@
         4. Bharosa Score is something i invented which calculates how much points to be given or taken based on the entry if cancelled without any reason and customer complained then big loss also if viewed and then not fulfilling the order again a huge loss
         5. Need to work on this before leaving i.e. 25th.
 
-25/07/26:
+24/07/26:
     -Almost completed the new reservation only controller is left
     -Will create the notification system for the customer and merchant for reservation both push and email no sms as it costs.
+
+25/07/26:
+    -Trying to manage the new architecture that it lines up with the reservation, basket and some reminder notifications and also a scope to be left for future to have delivery system to be locked in.
+    -Competition found was flipkart which sells even 10rs item but the problem is still variety and infrastructure cost which is not the problem with stockUp
