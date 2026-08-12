@@ -32,6 +32,8 @@ public class MerchantServiceImpl implements MerchantService {
         }
 
         user.addRole(Role.MERCHANT);
+        
+        userRepository.save(user);
 
         Merchant merchant = new Merchant(user);
 

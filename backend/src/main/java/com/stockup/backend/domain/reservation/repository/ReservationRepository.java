@@ -1,7 +1,11 @@
 package com.stockup.backend.domain.reservation.repository;
 
+import com.stockup.backend.domain.merchant.entity.Merchant;
 import com.stockup.backend.domain.reservation.entity.Reservation;
 import com.stockup.backend.domain.reservation.entity.enums.ReservationStatus;
+import com.stockup.backend.domain.user.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.Instant;
@@ -19,4 +23,16 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
     List<Reservation> findAllByStatusAndActiveAtBefore(ReservationStatus status, Instant activeBefore);
 
     boolean existsByMerchantOfferId(UUID merchantOfferId);
+
+    Page<Reservation> findByMerchantAndStatus(
+            Merchant merchant,
+            ReservationStatus status,
+            Pageable pageable
+    );
+
+    Page<Reservation> findByCustomerAndStatus(
+            User customer,
+            ReservationStatus status,
+            Pageable pageable
+    );
 }

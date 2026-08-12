@@ -69,7 +69,7 @@ public class Reservation extends AuditableEntity {
      * Used only for analytics and merchant reputation.
      */
     @Column(name = "viewed_at")
-    private Instant viewedAt;
+    private Instant merchantViewedAt;
 
     /**
      * Time when the reservation became active.
@@ -134,13 +134,12 @@ public class Reservation extends AuditableEntity {
     }
 
     /**
-     * Records the first time the merchant views the notification.
+     * Records the first time the merchant views the reservation details.
      */
-    public void markViewed() {
+    public void markViewedByMerchant() {
         requireStatus(ReservationStatus.ACTIVE);
-
-        if (viewedAt == null) {
-            viewedAt = Instant.now();
+        if (merchantViewedAt == null) {
+            merchantViewedAt = Instant.now();
         }
     }
 
@@ -191,6 +190,22 @@ public class Reservation extends AuditableEntity {
         if (reason == null || reason.isBlank()) {
             throw new InvalidCancellationReasonException(
                     "Cancellation reason is required."
+            );
+        }
+    }
+
+    public void validateCustomer(User customer) {
+        if (!this.customer.equals(customer)) {
+            throw new ReservationAccessDeniedException(
+                    "You are not authorized to access this reservation."
+            );
+        }
+    }
+
+    public void validateMerchant(Merchant merchant) {
+        if (!this.merchant.equals(merchant)) {
+            throw new ReservationAccessDeniedException(
+                    "You are not authorized to access this reservation."
             );
         }
     }

@@ -19,7 +19,7 @@ public class ReservationMapper {
                 reservation.getCreatedAt(),
                 reservation.getActiveAt(),
                 reservation.getNotificationSentAt(),
-                reservation.getViewedAt()
+                reservation.getMerchantViewedAt()
         );
     }
 }

@@ -1,6 +1,5 @@
 package com.stockup.backend.domain.reservation.scheduler;
 
-
 import com.stockup.backend.domain.reservation.entity.Reservation;
 import com.stockup.backend.domain.reservation.entity.enums.ReservationStatus;
 import com.stockup.backend.domain.reservation.repository.ReservationRepository;
