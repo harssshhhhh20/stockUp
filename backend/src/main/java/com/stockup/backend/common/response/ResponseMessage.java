@@ -34,7 +34,26 @@ public enum ResponseMessage {
 
     RESERVATION_SUCCESS("Reservation created successfully."),
     RESERVATIONS_FETCHED("Reservation fetched successfully"),
-    RESERVATION_FETCHED("Fetched required reservation");
+    RESERVATION_FETCHED("Fetched required reservation"),
+
+    RESERVATION_NOT_FOUND("Reservation not found"),
+    RESERVATION_ALREADY_EXISTS("A reservation already exists"),
+    INVALID_RESERVATION_STATE("Reservation is not in a valid state for this action"),
+    INVALID_OTP("Invalid OTP"),
+    OTP_NOT_GENERATED("OTP has not been generated yet"),
+    RESERVATION_ACCESS_DENIED("You are not authorized to access this reservation"),
+    INVALID_CANCELLATION_REASON("A valid cancellation reason is required"),
+    MERCHANT_CANCELLATION_WINDOW_CLOSED("Reservation can no longer be cancelled"),
+    MERCHANT_OFFER_NOT_FOUND("Merchant offer not found"),
+
+    NOTIFICATION_NOT_FOUND("Notification not found"),
+    NOTIFICATION_ACCESS_DENIED("You are not authorized to access this notification"),
+
+    NO_TARGET_STORES_FOUND("No target stores found for this basket"),
+    BROADCAST_ALREADY_EXISTS("Broadcast already exists"),
+    BROADCAST_RECIPIENT_NOT_VIEWED("Broadcast must be marked as viewed first"),
+
+    USER_NOT_FOUND("User not found");
 
 
     private final String message;

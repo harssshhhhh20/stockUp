@@ -1,0 +1,2 @@
+ALTER TABLE merchants
+    ADD COLUMN bharosa_score INTEGER NOT NULL DEFAULT 100;

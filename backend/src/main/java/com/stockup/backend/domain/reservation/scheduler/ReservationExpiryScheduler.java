@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
@@ -25,7 +24,7 @@ public class ReservationExpiryScheduler {
         List<Reservation> reservations =
                 reservationRepository.findAllByStatusAndActiveAtBefore(
                         ReservationStatus.ACTIVE,
-                        Instant.now().minus(Duration.ofHours(1))
+                        Instant.now().minus(Reservation.ACTIVE_TTL)
                 );
         for (Reservation reservation : reservations) {
             try {

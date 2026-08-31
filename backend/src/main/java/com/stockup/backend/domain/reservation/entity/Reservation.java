@@ -13,6 +13,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.Duration;
 import java.time.Instant;
 
 @Getter
@@ -32,6 +33,19 @@ import java.time.Instant;
         }
 )
 public class Reservation extends AuditableEntity {
+
+    /**
+     * How long a reservation stays ACTIVE before it auto-expires.
+     * Shared with {@link com.stockup.backend.domain.reservation.scheduler.ReservationExpiryScheduler}
+     * so the entity and the scheduler never drift out of sync.
+     */
+    public static final Duration ACTIVE_TTL = Duration.ofHours(1);
+
+    /**
+     * Merchants cannot cancel once the reservation is this close to auto-expiring
+     * (Bharosa Score rule: no last-minute merchant cancellations).
+     */
+    public static final Duration MERCHANT_CANCELLATION_LOCKOUT = Duration.ofMinutes(3);
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "basket_id", nullable = false, updatable = false)
@@ -154,6 +168,15 @@ public class Reservation extends AuditableEntity {
 
     public void cancelByMerchant(String reason) {
         requireStatus(ReservationStatus.ACTIVE);
+
+        Instant expiresAt = activeAt.plus(ACTIVE_TTL);
+        if (Instant.now().isAfter(expiresAt.minus(MERCHANT_CANCELLATION_LOCKOUT))) {
+            throw new MerchantCancellationWindowClosedException(
+                    "Reservation can no longer be cancelled within "
+                            + MERCHANT_CANCELLATION_LOCKOUT.toMinutes()
+                            + " minutes of its expiry."
+            );
+        }
 
         validateCancellationReason(reason);
 

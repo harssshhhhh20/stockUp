@@ -5,8 +5,11 @@ import com.stockup.backend.domain.basket.entity.Basket;
 import com.stockup.backend.domain.merchant.entity.Merchant;
 import com.stockup.backend.domain.merchant.exception.MerchantNotFoundException;
 import com.stockup.backend.domain.merchant.repository.MerchantRepository;
+import com.stockup.backend.domain.merchant.service.BharosaScoreService;
 import com.stockup.backend.domain.merchantoffer.entity.MerchantOffer;
 import com.stockup.backend.domain.merchantoffer.repository.MerchantOfferRepository;
+import com.stockup.backend.domain.notification.entity.enums.NotificationType;
+import com.stockup.backend.domain.notification.service.NotificationService;
 import com.stockup.backend.domain.reservation.dto.CancelReservationRequest;
 import com.stockup.backend.domain.reservation.dto.CompleteReservationRequest;
 import com.stockup.backend.domain.reservation.dto.ReservationResponse;
@@ -39,6 +42,8 @@ public class ReservationServiceImpl implements ReservationService {
     private final ReservationOtpGenerator reservationOtpGenerator;
     private final CurrentUserService currentUserService;
     private final MerchantRepository merchantRepository;
+    private final NotificationService notificationService;
+    private final BharosaScoreService bharosaScoreService;
 
     @Override
     public ReservationResponse reserveMerchantOffer(UUID merchantOfferId) {
@@ -71,6 +76,14 @@ public class ReservationServiceImpl implements ReservationService {
 
         reservationRepository.save(reservation);
 
+        notificationService.notify(
+                merchant.getUser(),
+                NotificationType.RESERVATION_CREATED,
+                "New reservation request",
+                "A customer has reserved your offer for one of their baskets.",
+                reservation.getId()
+        );
+
         return reservationMapper.toResponse(reservation);
     }
 
@@ -85,6 +98,22 @@ public class ReservationServiceImpl implements ReservationService {
         reservation.activate(otp);
 
         reservationRepository.save(reservation);
+
+        notificationService.notify(
+                reservation.getMerchant().getUser(),
+                NotificationType.RESERVATION_ACTIVATED,
+                "Reservation is now active",
+                "The reservation is confirmed. Ask the customer for their handover OTP.",
+                reservation.getId()
+        );
+
+        notificationService.notify(
+                reservation.getCustomer(),
+                NotificationType.RESERVATION_ACTIVATED,
+                "Your reservation is active",
+                "Your OTP is " + otp + ". Show it to the merchant to collect your order.",
+                reservation.getId()
+        );
     }
 
     @Override
@@ -98,6 +127,28 @@ public class ReservationServiceImpl implements ReservationService {
         reservation.expire();
 
         reservationRepository.save(reservation);
+
+        bharosaScoreService.adjust(
+                reservation.getMerchant(),
+                BharosaScoreService.MERCHANT_NO_SHOW_DELTA,
+                "Reservation " + reservation.getId() + " expired without being fulfilled."
+        );
+
+        notificationService.notify(
+                reservation.getCustomer(),
+                NotificationType.RESERVATION_EXPIRED,
+                "Reservation expired",
+                "Your reservation was not fulfilled in time and has expired.",
+                reservation.getId()
+        );
+
+        notificationService.notify(
+                reservation.getMerchant().getUser(),
+                NotificationType.RESERVATION_EXPIRED,
+                "Reservation expired",
+                "A reservation expired without being fulfilled. Your Bharosa Score has been affected.",
+                reservation.getId()
+        );
     }
 
     @Override
@@ -121,6 +172,20 @@ public class ReservationServiceImpl implements ReservationService {
         reservation.complete(request.otp());
 
         Reservation updatedReservation = reservationRepository.save(reservation);
+
+        bharosaScoreService.adjust(
+                merchant,
+                BharosaScoreService.RESERVATION_COMPLETED_DELTA,
+                "Reservation " + reservation.getId() + " completed successfully."
+        );
+
+        notificationService.notify(
+                reservation.getCustomer(),
+                NotificationType.RESERVATION_COMPLETED,
+                "Order collected",
+                "Your reservation has been completed. Enjoy!",
+                reservation.getId()
+        );
 
         return reservationMapper.toResponse(updatedReservation);
     }
@@ -192,9 +257,31 @@ public class ReservationServiceImpl implements ReservationService {
         if(merchant.isPresent()){
             reservation.validateMerchant(merchant.get());
             reservation.cancelByMerchant(request.reason());
+
+            bharosaScoreService.adjust(
+                    merchant.get(),
+                    BharosaScoreService.MERCHANT_CANCELLED_DELTA,
+                    "Merchant cancelled reservation " + reservation.getId() + ": " + request.reason()
+            );
+
+            notificationService.notify(
+                    reservation.getCustomer(),
+                    NotificationType.RESERVATION_CANCELLED,
+                    "Reservation cancelled by merchant",
+                    "The merchant cancelled your reservation: " + request.reason(),
+                    reservation.getId()
+            );
         }else{
             reservation.validateCustomer(currUser);
             reservation.cancelByCustomer(request.reason());
+
+            notificationService.notify(
+                    reservation.getMerchant().getUser(),
+                    NotificationType.RESERVATION_CANCELLED,
+                    "Reservation cancelled by customer",
+                    "The customer cancelled their reservation: " + request.reason(),
+                    reservation.getId()
+            );
         }
         Reservation updatedReservation = reservationRepository.save(reservation);
         return reservationMapper.toResponse(updatedReservation);

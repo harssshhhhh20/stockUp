@@ -14,6 +14,13 @@ public class Merchant extends AuditableEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    /**
+     * Trust score used to gate/flag merchant behaviour (cancellations, no-shows).
+     * Starts at 100; adjusted by {@link com.stockup.backend.domain.merchant.service.BharosaScoreService}.
+     */
+    @Column(name = "bharosa_score", nullable = false)
+    private int bharosaScore = 100;
+
     protected Merchant() {
     }
 
@@ -23,5 +30,13 @@ public class Merchant extends AuditableEntity {
 
     public User getUser() {
         return user;
+    }
+
+    public int getBharosaScore() {
+        return bharosaScore;
+    }
+
+    public void adjustBharosaScore(int delta) {
+        this.bharosaScore = Math.max(0, Math.min(100, this.bharosaScore + delta));
     }
 }

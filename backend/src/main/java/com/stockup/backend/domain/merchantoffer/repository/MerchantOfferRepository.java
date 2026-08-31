@@ -1,5 +1,6 @@
 package com.stockup.backend.domain.merchantoffer.repository;
 
+import com.stockup.backend.domain.basket.entity.Basket;
 import com.stockup.backend.domain.broadcast.entity.Broadcast;
 import com.stockup.backend.domain.broadcast.entity.BroadcastRecipient;
 import com.stockup.backend.domain.merchantoffer.entity.MerchantOffer;
@@ -16,4 +17,6 @@ public interface MerchantOfferRepository extends JpaRepository<MerchantOffer, UU
     Optional<MerchantOffer> findByBroadcastRecipient(BroadcastRecipient broadcastRecipient);
 
     List<MerchantOffer> findAllByBroadcastRecipient_Broadcast(Broadcast broadcast);
+
+    List<MerchantOffer> findAllByBroadcastRecipient_Broadcast_Basket(Basket basket);
 }

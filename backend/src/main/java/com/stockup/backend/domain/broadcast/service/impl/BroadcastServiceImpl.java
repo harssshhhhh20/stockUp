@@ -12,6 +12,8 @@ import com.stockup.backend.domain.broadcast.repository.BroadcastRepository;
 import com.stockup.backend.domain.broadcast.service.BroadcastService;
 import com.stockup.backend.domain.merchant.entity.Merchant;
 import com.stockup.backend.domain.merchant.repository.MerchantRepository;
+import com.stockup.backend.domain.notification.entity.enums.NotificationType;
+import com.stockup.backend.domain.notification.service.NotificationService;
 import com.stockup.backend.domain.store.entity.Store;
 import com.stockup.backend.domain.store.repository.StoreRepository;
 import com.stockup.backend.domain.user.entity.User;
@@ -34,6 +36,7 @@ public class BroadcastServiceImpl implements BroadcastService {
     private final BroadcastRecipientRepository broadcastRecipientRepository;
     private final CurrentUserService currentUserService;
     private final MerchantRepository merchantRepository;
+    private final NotificationService notificationService;
 
     @Override
     public void broadcastBasket(Basket basket) {
@@ -57,6 +60,16 @@ public class BroadcastServiceImpl implements BroadcastService {
         }
 
         broadcastRepository.save(broadcast);
+
+        for (Store store : stores) {
+            notificationService.notify(
+                    store.getMerchant().getUser(),
+                    NotificationType.BASKET_BROADCASTED,
+                    "New nearby basket",
+                    "A customer nearby is looking for items your store may have.",
+                    basket.getId()
+            );
+        }
     }
     private List<Store> resolveTargetStores(Basket basket){
         return switch (basket.getTargetMode()) {
