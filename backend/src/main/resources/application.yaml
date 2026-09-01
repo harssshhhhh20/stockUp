@@ -5,5 +5,13 @@ spring:
   profiles:
     active: dev
 
+  # Load secrets from the gitignored .env at the repo root, so running the app
+  # needs no exported variables and no secret ever lands in a committed file.
+  # `optional:` means a missing .env is fine (CI, fresh clone, production).
+  config:
+    import:
+      - optional:file:./.env[.properties]
+      - optional:file:../.env[.properties]
+
 server:
   port: 8080

@@ -20,11 +20,21 @@ public class JwtServiceImpl implements JwtService {
 
     public JwtServiceImpl(AppProperties appProperties) {
         this.appProperties = appProperties;
-        this.secretKey = Keys.hmacShaKeyFor(
-                appProperties.getJwt()
-                        .getSecret()
-                        .getBytes(StandardCharsets.UTF_8)
-        );
+
+        String secret = appProperties.getJwt().getSecret();
+
+        // A blank value here usually means JWT_SECRET is set to "" somewhere
+        // (an empty entry in .env overrides the default rather than falling
+        // back to it). Say so, instead of failing with a key-length error.
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException(
+                    "app.jwt.secret is empty. Remove the empty JWT_SECRET entry "
+                            + "from your .env (comment it out to use the default), "
+                            + "or set it to a long random value."
+            );
+        }
+
+        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
     @Override

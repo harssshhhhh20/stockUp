@@ -64,10 +64,12 @@ stockup:
     email: ${ADMIN_EMAIL:}
 
   email:
-    # `console` prints the OTP to the log instead of emailing — handy locally.
+    # `console` prints the login code to the log, so the app always works out
+    # of the box. Set EMAIL_PROVIDER=brevo in .env to send real email.
     provider: ${EMAIL_PROVIDER:console}
     base-url: https://api.brevo.com
-    # Never commit a real key. Set BREVO_API_KEY in your environment or .env.
+    # Never commit a real key — this comes from .env (gitignored).
     api-key: ${BREVO_API_KEY:}
-    sender-email: ${EMAIL_SENDER:noreply@stockup.local}
+    # Must be a sender you have verified in Brevo, or sending is rejected.
+    sender-email: ${EMAIL_SENDER:g79844479@gmail.com}
     sender-name: StockUp

@@ -16,3 +16,4 @@ web-build/
 
 # Archives
 *.zip
+.env.bak-*

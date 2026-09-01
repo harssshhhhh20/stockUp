@@ -32,6 +32,17 @@ public class BrevoEmailProvider implements EmailProvider {
     ) {
         this.restClient = restClient;
         this.emailProperties = emailProperties;
+
+        // Fail loudly at startup rather than at someone's first login attempt.
+        if (emailProperties.getApiKey() == null || emailProperties.getApiKey().isBlank()) {
+            throw new IllegalStateException("""
+                    Email provider is set to 'brevo' but BREVO_API_KEY is empty.
+
+                    Either put BREVO_API_KEY=... in the .env at the repo root,
+                    or run with EMAIL_PROVIDER=console to print login codes to
+                    the log instead of emailing them.
+                    """);
+        }
     }
 
     @Override
