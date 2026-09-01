@@ -4,6 +4,7 @@ import com.stockup.backend.common.response.ApiResponse;
 import com.stockup.backend.common.response.ApiResponseFactory;
 import com.stockup.backend.common.response.ResponseMessage;
 import com.stockup.backend.domain.merchant.dto.request.CreateMerchantRequest;
+import com.stockup.backend.domain.merchant.dto.response.MerchantProfileResponse;
 import com.stockup.backend.domain.merchant.service.MerchantService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,6 +27,15 @@ public class MerchantController {
         return ApiResponseFactory.success(
                 ResponseMessage.MERCHANT_REGISTERED_SUCCESSFULLY,
                 null
+        );
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<MerchantProfileResponse>> getMyProfile() {
+
+        return ApiResponseFactory.success(
+                ResponseMessage.FETCHED,
+                merchantService.getMyProfile().orElse(null)
         );
     }
 }

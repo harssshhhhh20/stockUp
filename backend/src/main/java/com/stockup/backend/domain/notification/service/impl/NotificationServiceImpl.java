@@ -10,6 +10,7 @@ import com.stockup.backend.domain.notification.mapper.NotificationMapper;
 import com.stockup.backend.domain.notification.repository.NotificationRepository;
 import com.stockup.backend.domain.notification.service.NotificationService;
 import com.stockup.backend.domain.user.entity.User;
+import com.stockup.backend.infrastructure.notification.email.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,6 +27,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationRepository notificationRepository;
     private final NotificationMapper notificationMapper;
     private final CurrentUserService currentUserService;
+    private final EmailService emailService;
 
     @Override
     public void notify(
@@ -44,6 +46,16 @@ public class NotificationServiceImpl implements NotificationService {
         );
 
         notificationRepository.save(notification);
+
+        // Mirror it to email so people hear about it when the app is closed.
+        // Async and failure-tolerant — the in-app feed is the source of truth.
+        if (recipient.getEmail() != null) {
+            emailService.sendNotification(
+                    recipient.getEmail(),
+                    "StockUp — " + title,
+                    message
+            );
+        }
     }
 
     @Override

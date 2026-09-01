@@ -4,6 +4,7 @@ import com.stockup.backend.common.response.ApiResponse;
 import com.stockup.backend.common.response.ApiResponseFactory;
 import com.stockup.backend.common.response.ResponseMessage;
 import com.stockup.backend.domain.store.dto.request.CreateStoreRequest;
+import com.stockup.backend.domain.store.dto.response.StoreResponse;
 import com.stockup.backend.domain.store.service.StoreService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +30,15 @@ public class StoreController {
         return ApiResponseFactory.success(
                 ResponseMessage.STORE_CREATED,
                 null
+        );
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<StoreResponse>> getMyStore() {
+
+        return ApiResponseFactory.success(
+                ResponseMessage.FETCHED,
+                storeService.getMyStore().orElse(null)
         );
     }
 }

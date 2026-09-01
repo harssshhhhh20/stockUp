@@ -5,6 +5,7 @@ import com.stockup.backend.domain.merchant.entity.Merchant;
 import com.stockup.backend.domain.merchant.exception.MerchantNotFoundException;
 import com.stockup.backend.domain.merchant.repository.MerchantRepository;
 import com.stockup.backend.domain.store.dto.request.CreateStoreRequest;
+import com.stockup.backend.domain.store.dto.response.StoreResponse;
 import com.stockup.backend.domain.store.entity.Store;
 import com.stockup.backend.domain.store.exception.StoreAlreadyExistsException;
 import com.stockup.backend.domain.store.repository.StoreRepository;
@@ -12,6 +13,8 @@ import com.stockup.backend.domain.store.service.StoreService;
 import com.stockup.backend.domain.user.entity.User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -61,5 +64,27 @@ public class StoreServiceImpl implements StoreService {
         );
 
         storeRepository.save(store);
+    }
+
+    @Override
+    public Optional<StoreResponse> getMyStore() {
+
+        User user = currentUserService.getCurrentUser();
+
+        return merchantRepository.findByUser(user)
+                .flatMap(storeRepository::findByMerchant)
+                .map(store -> new StoreResponse(
+                        store.getId(),
+                        store.getName(),
+                        store.getBusinessType(),
+                        store.getAddressLine1(),
+                        store.getAddressLine2(),
+                        store.getCity(),
+                        store.getState(),
+                        store.getPostalCode(),
+                        store.getCountry(),
+                        store.getLatitude(),
+                        store.getLongitude()
+                ));
     }
 }

@@ -3,8 +3,10 @@ package com.stockup.backend.domain.broadcast.service.impl;
 import com.stockup.backend.common.security.CurrentUserService;
 import com.stockup.backend.domain.basket.entity.Basket;
 import com.stockup.backend.domain.basket.entity.BasketTargetStore;
+import com.stockup.backend.domain.broadcast.dto.BroadcastRecipientSummaryResponse;
 import com.stockup.backend.domain.broadcast.entity.Broadcast;
 import com.stockup.backend.domain.broadcast.entity.BroadcastRecipient;
+import com.stockup.backend.domain.broadcast.entity.enums.BroadcastRecipientStatus;
 import com.stockup.backend.domain.broadcast.exception.BroadcastAlreadyExistsException;
 import com.stockup.backend.domain.broadcast.exception.NoTargetStoresFoundException;
 import com.stockup.backend.domain.broadcast.repository.BroadcastRecipientRepository;
@@ -113,6 +115,48 @@ public class BroadcastServiceImpl implements BroadcastService {
         }
 
         broadcastRecipient.markViewed();
+    }
+
+    @Override
+    public List<BroadcastRecipientSummaryResponse> getMyPendingBroadcasts() {
+
+        User currentUser = currentUserService.getCurrentUser();
+
+        Merchant merchant = merchantRepository.findByUser(currentUser)
+                .orElseThrow(() -> new EntityNotFoundException("Merchant not found for authenticated user."));
+
+        Store store = storeRepository.findByMerchant(merchant)
+                .orElseThrow(() -> new EntityNotFoundException("Store not found for authenticated merchant."));
+
+        List<BroadcastRecipient> recipients = broadcastRecipientRepository
+                .findAllByStoreAndStatusInOrderByCreatedAtDesc(
+                        store,
+                        List.of(BroadcastRecipientStatus.PENDING, BroadcastRecipientStatus.VIEWED)
+                );
+
+        return recipients.stream()
+                .map(recipient -> {
+                    Basket basket = recipient.getBroadcast().getBasket();
+                    return new BroadcastRecipientSummaryResponse(
+                            recipient.getId(),
+                            basket.getId(),
+                            recipient.getStatus(),
+                            recipient.getCreatedAt(),
+                            recipient.getViewedAt(),
+                            basket.getExpiresAt(),
+                            basket.getItems().stream()
+                                    .map(item -> new BroadcastRecipientSummaryResponse.Item(
+                                            item.getId(),
+                                            item.getProductName(),
+                                            item.getQuantity(),
+                                            item.getUnit(),
+                                            item.getBrand(),
+                                            item.getNotes()
+                                    ))
+                                    .toList()
+                    );
+                })
+                .toList();
     }
 
 }

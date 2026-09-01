@@ -3,12 +3,15 @@ package com.stockup.backend.domain.broadcast.controller;
 import com.stockup.backend.common.response.ApiResponse;
 import com.stockup.backend.common.response.ApiResponseFactory;
 import com.stockup.backend.common.response.ResponseMessage;
+import com.stockup.backend.domain.broadcast.dto.BroadcastRecipientSummaryResponse;
 import com.stockup.backend.domain.broadcast.dto.MarkBroadcastViewedRequest;
 import com.stockup.backend.domain.broadcast.service.BroadcastService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/broadcasts")
@@ -27,6 +30,15 @@ public class BroadcastController {
         return ApiResponseFactory.success(
                 ResponseMessage.UPDATED,
                 null
+        );
+    }
+
+    @GetMapping("/mine")
+    public ResponseEntity<ApiResponse<List<BroadcastRecipientSummaryResponse>>> getMyPendingBroadcasts() {
+
+        return ApiResponseFactory.success(
+                ResponseMessage.FETCHED,
+                broadcastService.getMyPendingBroadcasts()
         );
     }
 }

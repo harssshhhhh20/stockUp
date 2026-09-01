@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "StockUp",
+    "slug": "stockup",
+    "scheme": "stockup",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#F5F3EA",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F5F3EA"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.stockup.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "StockUp uses your location to find shops near you and to pin your shop so nearby customers can reach it."
+      }
+    },
+    "android": {
+      "package": "com.stockup.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#F5F3EA",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font",
+      "expo-status-bar",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "StockUp uses your location to find shops near you and to pin your shop so nearby customers can reach it."
+        }
+      ]
+    ]
+  }
+}

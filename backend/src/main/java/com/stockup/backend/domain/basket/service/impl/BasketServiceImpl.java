@@ -147,6 +147,7 @@ public class BasketServiceImpl implements BasketService {
                 basket.getItems()
                         .stream()
                         .map(item -> new BasketItemResponse(
+                                item.getId(),
                                 item.getProductName(),
                                 item.getQuantity(),
                                 item.getUnit(),

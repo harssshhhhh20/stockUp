@@ -55,12 +55,19 @@ app:
     issuer: stockup
     access-token-expiry-seconds: 900
     refresh-token-expiry-seconds: 604800
-    secret: your-very-long-secret-key-change-this-before-production
+    # Override with JWT_SECRET in any real environment.
+    secret: ${JWT_SECRET:dev-only-secret-key-not-for-production-use-abcdefghijklmnop}
 
 stockup:
+  # Grant ADMIN to this account on boot (the user must have signed in once).
+  admin:
+    email: ${ADMIN_EMAIL:}
+
   email:
-    provider: brevo
+    # `console` prints the OTP to the log instead of emailing — handy locally.
+    provider: ${EMAIL_PROVIDER:console}
     base-url: https://api.brevo.com
+    # Never commit a real key. Set BREVO_API_KEY in your environment or .env.
     api-key: ${BREVO_API_KEY:}
-    sender-email: g79844479@gmail.com
+    sender-email: ${EMAIL_SENDER:noreply@stockup.local}
     sender-name: StockUp

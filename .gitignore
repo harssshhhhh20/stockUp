@@ -1,1 +1,18 @@
 .env
+.env.local
+
+# OS
+.DS_Store
+
+# Java / Maven
+target/
+
+# Node / Expo
+node_modules/
+.expo/
+dist/
+web-build/
+*.log
+
+# Archives
+*.zip

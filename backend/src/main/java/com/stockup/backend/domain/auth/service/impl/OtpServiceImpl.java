@@ -1,34 +1,38 @@
 package com.stockup.backend.domain.auth.service.impl;
 
+import com.stockup.backend.domain.auth.exception.InvalidOtpException;
+import com.stockup.backend.domain.auth.exception.OtpExpiredException;
+import com.stockup.backend.domain.auth.service.OtpRateLimiter;
 import com.stockup.backend.infrastructure.notification.email.service.EmailService;
 import com.stockup.backend.domain.auth.service.OtpService;
 import com.stockup.backend.domain.auth.service.OtpStore;
 import com.stockup.backend.domain.auth.util.OtpGenerator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class OtpServiceImpl implements OtpService {
 
-    private static final Logger log = LoggerFactory.getLogger(OtpServiceImpl.class);
-
     private final OtpStore otpStore;
     private final OtpGenerator otpGenerator;
     private final EmailService emailService;
+    private final OtpRateLimiter otpRateLimiter;
 
     public OtpServiceImpl(
             OtpStore otpStore,
             OtpGenerator otpGenerator,
-            EmailService emailService
+            EmailService emailService,
+            OtpRateLimiter otpRateLimiter
     ) {
         this.otpStore = otpStore;
         this.otpGenerator = otpGenerator;
         this.emailService = emailService;
+        this.otpRateLimiter = otpRateLimiter;
     }
 
     @Override
     public void generateOtp(String email) {
+
+        otpRateLimiter.checkAndRecord(email);
 
         String otp = otpGenerator.generate();
 
@@ -41,12 +45,13 @@ public class OtpServiceImpl implements OtpService {
     public void verifyOtp(String email, String otp) {
 
         String storedOtp = otpStore.get(email)
-                .orElseThrow(() -> new RuntimeException("OTP expired"));
+                .orElseThrow(OtpExpiredException::new);
 
         if (!storedOtp.equals(otp)) {
-            throw new RuntimeException("Invalid OTP");
+            throw new InvalidOtpException();
         }
 
         otpStore.delete(email);
+        otpRateLimiter.clear(email);
     }
 }

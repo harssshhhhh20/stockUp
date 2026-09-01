@@ -3,6 +3,7 @@ package com.stockup.backend.domain.merchant.service.impl;
 import com.stockup.backend.common.security.CurrentUserService;
 import com.stockup.backend.domain.merchant.dto.request.CreateMerchantRequest;
 import com.stockup.backend.domain.merchant.entity.Merchant;
+import com.stockup.backend.domain.merchant.dto.response.MerchantProfileResponse;
 import com.stockup.backend.domain.merchant.exception.MerchantAlreadyExistsException;
 import com.stockup.backend.domain.merchant.repository.MerchantRepository;
 import com.stockup.backend.domain.merchant.service.MerchantService;
@@ -12,6 +13,8 @@ import com.stockup.backend.domain.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 
 
 @Service
@@ -39,5 +42,17 @@ public class MerchantServiceImpl implements MerchantService {
         Merchant merchant = new Merchant(user);
 
         merchantRepository.save(merchant);
+    }
+
+    @Override
+    public Optional<MerchantProfileResponse> getMyProfile() {
+
+        User user = currentUserService.getCurrentUser();
+
+        return merchantRepository.findByUser(user)
+                .map(merchant -> new MerchantProfileResponse(
+                        merchant.getId(),
+                        merchant.getBharosaScore()
+                ));
     }
 }
