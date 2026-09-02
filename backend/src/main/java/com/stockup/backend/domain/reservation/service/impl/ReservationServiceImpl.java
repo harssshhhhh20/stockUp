@@ -15,6 +15,9 @@ import com.stockup.backend.domain.reservation.dto.CompleteReservationRequest;
 import com.stockup.backend.domain.reservation.dto.ReservationResponse;
 import com.stockup.backend.domain.reservation.entity.Reservation;
 import com.stockup.backend.domain.reservation.entity.enums.ReservationStatus;
+import com.stockup.backend.domain.reservation.event.EventActor;
+import com.stockup.backend.domain.reservation.event.ReservationEventRecorder;
+import com.stockup.backend.domain.reservation.event.ReservationEventType;
 import com.stockup.backend.domain.reservation.exception.*;
 import com.stockup.backend.domain.reservation.mapper.ReservationMapper;
 import com.stockup.backend.domain.reservation.otp.ReservationOtpGenerator;
@@ -44,6 +47,7 @@ public class ReservationServiceImpl implements ReservationService {
     private final MerchantRepository merchantRepository;
     private final NotificationService notificationService;
     private final BharosaScoreService bharosaScoreService;
+    private final ReservationEventRecorder eventRecorder;
 
     @Override
     public ReservationResponse reserveMerchantOffer(UUID merchantOfferId) {
@@ -76,6 +80,9 @@ public class ReservationServiceImpl implements ReservationService {
 
         reservationRepository.save(reservation);
 
+        eventRecorder.recordReservationStage(
+                reservation, ReservationEventType.CUSTOMER_RESERVED, EventActor.CUSTOMER, null);
+
         notificationService.notify(
                 merchant.getUser(),
                 NotificationType.RESERVATION_CREATED,
@@ -98,6 +105,9 @@ public class ReservationServiceImpl implements ReservationService {
         reservation.activate(otp);
 
         reservationRepository.save(reservation);
+
+        eventRecorder.recordReservationStage(
+                reservation, ReservationEventType.RESERVATION_ACTIVATED, EventActor.SYSTEM, null);
 
         notificationService.notify(
                 reservation.getMerchant().getUser(),
@@ -127,6 +137,9 @@ public class ReservationServiceImpl implements ReservationService {
         reservation.expire();
 
         reservationRepository.save(reservation);
+
+        eventRecorder.recordReservationStage(
+                reservation, ReservationEventType.RESERVATION_EXPIRED, EventActor.SYSTEM, null);
 
         bharosaScoreService.adjust(
                 reservation.getMerchant(),
@@ -172,6 +185,9 @@ public class ReservationServiceImpl implements ReservationService {
         reservation.complete(request.otp());
 
         Reservation updatedReservation = reservationRepository.save(reservation);
+
+        eventRecorder.recordReservationStage(
+                reservation, ReservationEventType.HANDOVER_COMPLETED, EventActor.MERCHANT, null);
 
         bharosaScoreService.adjust(
                 merchant,
@@ -258,6 +274,9 @@ public class ReservationServiceImpl implements ReservationService {
             reservation.validateMerchant(merchant.get());
             reservation.cancelByMerchant(request.reason());
 
+            eventRecorder.recordReservationStage(
+                    reservation, ReservationEventType.MERCHANT_CANCELLED, EventActor.MERCHANT, null);
+
             bharosaScoreService.adjust(
                     merchant.get(),
                     BharosaScoreService.MERCHANT_CANCELLED_DELTA,
@@ -274,6 +293,9 @@ public class ReservationServiceImpl implements ReservationService {
         }else{
             reservation.validateCustomer(currUser);
             reservation.cancelByCustomer(request.reason());
+
+            eventRecorder.recordReservationStage(
+                    reservation, ReservationEventType.CUSTOMER_CANCELLED, EventActor.CUSTOMER, null);
 
             notificationService.notify(
                     reservation.getMerchant().getUser(),

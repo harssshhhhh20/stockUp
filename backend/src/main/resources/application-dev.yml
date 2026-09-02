@@ -59,6 +59,33 @@ app:
     secret: ${JWT_SECRET:dev-only-secret-key-not-for-production-use-abcdefghijklmnop}
 
 stockup:
+  # ---- Bharosa (Kasauti engine) -------------------------------------------
+  # Every constant is tunable here; none is hardcoded in Java. Retuning trust
+  # is an edit to this block and a restart.
+  bharosa:
+    window-days: 90
+    half-life-days: 30          # an event loses half its weight in a month
+    prior: 0.62                 # where an unproven shop sits
+    prior-strength: 6           # how much evidence to overcome it
+    per-customer-cap: 3         # one shopper cannot become a reputation
+    consistency-floor: 0.85     # erratic discounts, never destroys
+    trajectory-clamp: 0.05      # recent form nudges, never decides
+    corroboration-clamp: 0.06   # ratings can move it this far, no further
+    fast-response-seconds: 300
+    response-window-seconds: 900
+    commitment:                 # failing late costs more than failing early
+      expired-unseen: 0.5
+      viewed-then-expired: 1.5
+      offer-submitted: 1.0
+      handover-completed: 3.0
+      merchant-cancelled: 4.0
+      reservation-expired: 5.0
+    ranking:
+      bharosa-exponent: 1.0
+      distance-exponent: 0.6
+      availability-exponent: 0.8
+      distance-half-life-km: 2.5
+
   # Grant ADMIN to this account on boot (the user must have signed in once).
   admin:
     email: ${ADMIN_EMAIL:}

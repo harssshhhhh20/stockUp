@@ -16,6 +16,9 @@ import com.stockup.backend.domain.merchant.entity.Merchant;
 import com.stockup.backend.domain.merchant.repository.MerchantRepository;
 import com.stockup.backend.domain.notification.entity.enums.NotificationType;
 import com.stockup.backend.domain.notification.service.NotificationService;
+import com.stockup.backend.domain.reservation.event.EventActor;
+import com.stockup.backend.domain.reservation.event.ReservationEventRecorder;
+import com.stockup.backend.domain.reservation.event.ReservationEventType;
 import com.stockup.backend.domain.store.entity.Store;
 import com.stockup.backend.domain.store.repository.StoreRepository;
 import com.stockup.backend.domain.user.entity.User;
@@ -39,6 +42,7 @@ public class BroadcastServiceImpl implements BroadcastService {
     private final CurrentUserService currentUserService;
     private final MerchantRepository merchantRepository;
     private final NotificationService notificationService;
+    private final ReservationEventRecorder eventRecorder;
 
     @Override
     public void broadcastBasket(Basket basket) {
@@ -64,6 +68,10 @@ public class BroadcastServiceImpl implements BroadcastService {
         broadcastRepository.save(broadcast);
 
         for (Store store : stores) {
+            eventRecorder.recordBroadcastStage(
+                    basket.getId(), store.getId(), store.getMerchant().getId(),
+                    ReservationEventType.REQUEST_BROADCAST, EventActor.SYSTEM);
+
             notificationService.notify(
                     store.getMerchant().getUser(),
                     NotificationType.BASKET_BROADCASTED,
@@ -115,6 +123,12 @@ public class BroadcastServiceImpl implements BroadcastService {
         }
 
         broadcastRecipient.markViewed();
+
+        eventRecorder.recordBroadcastStage(
+                broadcastRecipient.getBroadcast().getBasket().getId(),
+                broadcastRecipient.getStore().getId(),
+                merchant.getId(),
+                ReservationEventType.MERCHANT_VIEWED, EventActor.MERCHANT);
     }
 
     @Override

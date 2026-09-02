@@ -1,5 +1,6 @@
 package com.stockup.backend.domain.merchant.service.impl;
 
+import com.stockup.backend.domain.bharosa.BharosaEngine;
 import com.stockup.backend.domain.merchant.entity.Merchant;
 import com.stockup.backend.domain.merchant.repository.MerchantRepository;
 import com.stockup.backend.domain.merchant.service.BharosaScoreService;
@@ -15,20 +16,25 @@ import org.springframework.transaction.annotation.Transactional;
 public class BharosaScoreServiceImpl implements BharosaScoreService {
 
     private final MerchantRepository merchantRepository;
+    private final BharosaEngine bharosaEngine;
 
+    /**
+     * Kept as the call site the domain already uses, but the delta is now only a
+     * hint that something changed. The score itself is recomputed from the event
+     * log, so it can never drift away from what actually happened — and a bug in
+     * one call site cannot permanently corrupt a merchant's reputation.
+     */
     @Override
     public void adjust(Merchant merchant, int delta, String reason) {
 
-        merchant.adjustBharosaScore(delta);
+        int recomputed = bharosaEngine.scoreFor(merchant.getId());
 
+        merchant.setBharosaScore(recomputed);
         merchantRepository.save(merchant);
 
         log.info(
-                "Adjusted Bharosa Score for merchant {} by {} ({}). New score: {}",
-                merchant.getId(),
-                delta,
-                reason,
-                merchant.getBharosaScore()
+                "Recomputed Bharosa for merchant {} after '{}' -> {}",
+                merchant.getId(), reason, recomputed
         );
     }
 }

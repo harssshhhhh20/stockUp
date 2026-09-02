@@ -8,6 +8,9 @@ import com.stockup.backend.domain.broadcast.entity.enums.BroadcastRecipientStatu
 import com.stockup.backend.domain.broadcast.repository.BroadcastRecipientRepository;
 import com.stockup.backend.domain.broadcast.repository.BroadcastRepository;
 import com.stockup.backend.domain.merchant.service.BharosaScoreService;
+import com.stockup.backend.domain.reservation.event.EventActor;
+import com.stockup.backend.domain.reservation.event.ReservationEventRecorder;
+import com.stockup.backend.domain.reservation.event.ReservationEventType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -24,6 +27,7 @@ public class BasketExpiryScheduler {
     private final BroadcastRepository broadcastRepository;
     private final BroadcastRecipientRepository broadcastRecipientRepository;
     private final BharosaScoreService bharosaScoreService;
+    private final ReservationEventRecorder eventRecorder;
 
     @Transactional
     @Scheduled(fixedDelay = 60_000)
@@ -50,6 +54,12 @@ public class BasketExpiryScheduler {
 
                     if (recipient.getStatus() == BroadcastRecipientStatus.PENDING) {
 
+                        eventRecorder.recordBroadcastStage(
+                                basket.getId(),
+                                recipient.getStore().getId(),
+                                recipient.getStore().getMerchant().getId(),
+                                ReservationEventType.REQUEST_EXPIRED_UNSEEN, EventActor.SYSTEM);
+
                         bharosaScoreService.adjust(
                                 recipient.getStore().getMerchant(),
                                 BharosaScoreService.BROADCAST_NOT_VIEWED_DELTA,
@@ -59,6 +69,12 @@ public class BasketExpiryScheduler {
                         recipient.expire();
 
                     } else if (recipient.getStatus() == BroadcastRecipientStatus.VIEWED) {
+
+                        eventRecorder.recordBroadcastStage(
+                                basket.getId(),
+                                recipient.getStore().getId(),
+                                recipient.getStore().getMerchant().getId(),
+                                ReservationEventType.REQUEST_VIEWED_THEN_EXPIRED, EventActor.SYSTEM);
 
                         bharosaScoreService.adjust(
                                 recipient.getStore().getMerchant(),

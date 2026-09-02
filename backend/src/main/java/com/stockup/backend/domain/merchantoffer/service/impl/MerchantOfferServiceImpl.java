@@ -22,6 +22,9 @@ import com.stockup.backend.domain.merchantoffer.service.MerchantOfferService;
 import com.stockup.backend.domain.merchantoffer.value.MerchantOfferResponse;
 import com.stockup.backend.domain.notification.entity.enums.NotificationType;
 import com.stockup.backend.domain.notification.service.NotificationService;
+import com.stockup.backend.domain.reservation.event.EventActor;
+import com.stockup.backend.domain.reservation.event.ReservationEventRecorder;
+import com.stockup.backend.domain.reservation.event.ReservationEventType;
 import com.stockup.backend.domain.user.entity.User;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -48,6 +51,7 @@ public class MerchantOfferServiceImpl implements MerchantOfferService {
     private final NotificationService notificationService;
     private final BasketRepository basketRepository;
     private final BharosaScoreService bharosaScoreService;
+    private final ReservationEventRecorder eventRecorder;
 
     @Override
     public SubmitMerchantOfferResponse submit(SubmitMerchantOfferRequest request) {
@@ -102,6 +106,12 @@ public class MerchantOfferServiceImpl implements MerchantOfferService {
         broadcastRecipient.markResponded();
 
         merchantOfferRepository.save(merchantOffer);
+
+        eventRecorder.recordBroadcastStage(
+                broadcastRecipient.getBroadcast().getBasket().getId(),
+                broadcastRecipient.getStore().getId(),
+                merchant.getId(),
+                ReservationEventType.OFFER_SUBMITTED, EventActor.MERCHANT);
 
         bharosaScoreService.adjust(
                 merchant,

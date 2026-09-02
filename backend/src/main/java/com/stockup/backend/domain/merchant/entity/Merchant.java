@@ -36,6 +36,14 @@ public class Merchant extends AuditableEntity {
         return bharosaScore;
     }
 
+    /**
+     * Replaces the score outright — used by the Kasauti engine, which derives the
+     * whole value from the event log rather than nudging the previous one.
+     */
+    public void setBharosaScore(int score) {
+        this.bharosaScore = Math.max(0, Math.min(100, score));
+    }
+
     public void adjustBharosaScore(int delta) {
         this.bharosaScore = Math.max(0, Math.min(100, this.bharosaScore + delta));
     }
