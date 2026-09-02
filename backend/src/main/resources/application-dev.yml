@@ -47,7 +47,12 @@ management:
 app:
   otp:
     length: 6
-    expiry-seconds: 300
+    # Must comfortably exceed how long the email actually takes to arrive.
+    # Brevo's free tier was measured queueing for ~11 minutes, so a 5-minute
+    # code expired before it ever landed — every login failed even though the
+    # email was delivered. 20 minutes leaves real headroom.
+    # Brute force is bounded by max-attempts-per-hour, not by this window.
+    expiry-seconds: ${OTP_EXPIRY_SECONDS:1200}
     resend-wait-seconds: 60
     max-attempts-per-hour: 5
 

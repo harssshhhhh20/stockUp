@@ -29,7 +29,7 @@ export function SignInScreen() {
     try {
       await AuthApi.requestOtp(email.trim());
       setStep("otp");
-      toast("Code sent — check your email", "info");
+      toast("Code sent — it can take a few minutes", "info");
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Couldn't send the code. Try again.");
     } finally {
@@ -99,6 +99,14 @@ export function SignInScreen() {
                   {error}
                 </Text>
               ) : null}
+              {/* Delivery on the free email tier can genuinely take minutes.
+                  Saying so beats letting someone stare at an empty inbox and
+                  conclude the app is broken. */}
+              <Text variant="bodySm" color={color.neutral.inkFaint} style={styles.deliveryNote}>
+                It can take a few minutes to arrive — check spam too. The code
+                stays valid for 20 minutes.
+              </Text>
+
               <Button
                 label="Verify & continue"
                 onPress={verify}
@@ -123,6 +131,7 @@ export function SignInScreen() {
 }
 
 const styles = StyleSheet.create({
+  deliveryNote: { textAlign: "center", marginTop: -2 },
   flex: { flex: 1 },
   content: {
     flex: 1,
