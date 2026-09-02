@@ -4,6 +4,7 @@ import com.stockup.backend.domain.bharosa.BharosaEngine;
 import com.stockup.backend.domain.bharosa.BharosaExplainer;
 import com.stockup.backend.domain.bharosa.BharosaPillars;
 import com.stockup.backend.domain.discovery.dto.NearbyStoreResponse;
+import com.stockup.backend.domain.feedback.repository.ReservationFeedbackRepository;
 import com.stockup.backend.domain.store.entity.Store;
 import com.stockup.backend.domain.store.repository.StoreRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ public class DiscoveryService {
     private final BharosaEngine engine;
     private final BharosaExplainer explainer;
     private final RankingService rankingService;
+    private final ReservationFeedbackRepository feedbackRepository;
 
     public List<NearbyStoreResponse> nearby(double latitude, double longitude, int radiusMeters) {
 
@@ -56,6 +58,9 @@ public class DiscoveryService {
                 .map(ranked -> {
                     Store store = ranked.store();
                     BharosaPillars pillars = engine.computePillars(store.getMerchant().getId());
+                    Double avg = feedbackRepository.averageStars(store.getMerchant().getId());
+                    long reviews = feedbackRepository.countByMerchantId(store.getMerchant().getId());
+
                     return new NearbyStoreResponse(
                             store.getId(),
                             store.getName(),
@@ -65,10 +70,46 @@ public class DiscoveryService {
                             ranked.bharosa(),
                             band(ranked.bharosa(), pillars),
                             explainer.bannerTags(pillars),
+                            knownFor(pillars, store),
+                            avg == null ? null : Math.round(avg * 10) / 10.0,
+                            reviews,
                             ranked.rankScore()
                     );
                 })
                 .toList();
+    }
+
+    /**
+     * The one line under a shop's name explaining why it is worth asking.
+     *
+     * Always derived from what the shop actually did — never a tagline the
+     * shopkeeper wrote about themselves, which is exactly the kind of claim
+     * StockUp exists not to rank on.
+     */
+    private String knownFor(BharosaPillars p, Store store) {
+        if (p.isUnproven()) {
+            return "New here — worth a try";
+        }
+        Double secs = p.medianResponseSeconds();
+        if (secs != null && secs <= 120 && p.promiseKeeping() >= 0.9) {
+            return "Answers in minutes and comes through";
+        }
+        if (p.promiseKeeping() >= 0.95 && p.distinctCustomers() >= 3) {
+            return "Has never let a shopper down";
+        }
+        if (secs != null && secs <= 300) {
+            return "One of the quickest to reply nearby";
+        }
+        if (p.distinctCustomers() >= 5) {
+            return "A regular stop for " + p.distinctCustomers() + " shoppers";
+        }
+        if (p.promiseKeeping() >= 0.8) {
+            return "Reliable on what they promise";
+        }
+        if (p.responsiveness() < 0.3) {
+            return "Rarely replies — expect a wait";
+        }
+        return "Building a track record";
     }
 
     private String band(int score, BharosaPillars pillars) {

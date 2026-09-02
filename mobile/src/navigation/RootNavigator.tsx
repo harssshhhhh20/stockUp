@@ -21,6 +21,10 @@ import { OrderDetailScreen } from "../screens/shared/OrderDetailScreen";
 import { RateOrderScreen } from "../screens/customer/RateOrderScreen";
 import { PickShopsScreen } from "../screens/customer/PickShopsScreen";
 import { BecomeMerchantScreen } from "../screens/onboarding/BecomeMerchantScreen";
+import { ChooseRoleScreen } from "../screens/onboarding/ChooseRoleScreen";
+import { CompleteProfileScreen } from "../screens/onboarding/CompleteProfileScreen";
+import { HomeScreen } from "../screens/customer/HomeScreen";
+import { MerchantHomeScreen } from "../screens/merchant/MerchantHomeScreen";
 import { TabIcon } from "../components/TabIcon";
 import { color, font } from "../theme/tokens";
 
@@ -61,6 +65,11 @@ function Tabs() {
       })}
     >
       {isMerchant ? (
+        <Tab.Screen name="Shop" component={MerchantHomeScreen} />
+      ) : (
+        <Tab.Screen name="Home" component={HomeScreen} />
+      )}
+      {isMerchant ? (
         <Tab.Screen name="Requests" component={RequestsScreen} />
       ) : (
         <Tab.Screen name="Lists" component={BasketsScreen} />
@@ -77,7 +86,7 @@ function Tabs() {
 }
 
 export function RootNavigator() {
-  const { booting, signedIn } = useAuth();
+  const { booting, signedIn, onboardingStep } = useAuth();
   // Register for push once signed in; failures are silent by design.
   usePushNotifications(signedIn);
 
@@ -94,6 +103,12 @@ export function RootNavigator() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!signedIn ? (
           <Stack.Screen name="SignIn" component={SignInScreen} />
+        ) : onboardingStep === "choose-role" ? (
+          <Stack.Screen name="ChooseRole" component={ChooseRoleScreen} />
+        ) : onboardingStep === "complete-profile" ? (
+          <Stack.Screen name="CompleteProfile" component={CompleteProfileScreen} />
+        ) : onboardingStep === "setup-shop" ? (
+          <Stack.Screen name="SetupShop" component={BecomeMerchantScreen} />
         ) : (
           <>
             <Stack.Screen name="Tabs" component={Tabs} />

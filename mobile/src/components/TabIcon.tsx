@@ -26,6 +26,19 @@ export function TabIcon({
 
   return (
     <Svg width={24} height={24} viewBox="0 0 24 24">
+      {route === "Home" || route === "Shop" ? (
+        <>
+          {/* A roof over a door: home for shoppers, storefront for shopkeepers. */}
+          <Path d="M4 10.5 12 4l8 6.5" {...common} />
+          <Path d="M6 10v9.5h12V10" {...common} />
+          {route === "Shop" ? (
+            <Path d="M10 19.5V14h4v5.5" {...common} />
+          ) : (
+            <Path d="M10 19.5v-4.2a2 2 0 0 1 4 0v4.2" {...common} />
+          )}
+        </>
+      ) : null}
+
       {route === "Lists" || route === "Requests" ? (
         <>
           <Path d="M4.5 8h15l-1.4 10.2a2 2 0 0 1-2 1.8H7.9a2 2 0 0 1-2-1.8L4.5 8Z" {...common} />

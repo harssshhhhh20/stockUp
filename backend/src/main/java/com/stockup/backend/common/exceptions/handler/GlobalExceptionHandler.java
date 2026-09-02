@@ -78,6 +78,20 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<Object>> handleDataIntegrity(
+            org.springframework.dao.DataIntegrityViolationException ex
+    ) {
+        // A uniqueness clash is something the caller can fix; leaking it as a
+        // 500 tells them nothing and looks like our fault.
+        log.warn("Constraint violation: {}", ex.getMostSpecificCause().getMessage());
+        return ApiResponseFactory.failure(
+                HttpStatus.CONFLICT,
+                ResponseMessage.CONFLICT,
+                List.of(new ApiError(null, "That value is already in use."))
+        );
+    }
+
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ApiResponse<Object>> handleIllegalState(IllegalStateException ex) {
         return ApiResponseFactory.failure(

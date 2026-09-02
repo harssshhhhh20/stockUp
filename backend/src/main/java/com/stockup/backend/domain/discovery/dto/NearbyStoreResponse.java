@@ -19,6 +19,10 @@ public record NearbyStoreResponse(
         int bharosa,
         String band,
         List<BharosaTag> tags,
+        /** One human line on why this shop is worth asking. Derived, never typed. */
+        String knownFor,
+        Double averageStars,
+        long reviewCount,
         /** Why this store is placed here. Debug/transparency, not shown by default. */
         double rankScore
 ) {

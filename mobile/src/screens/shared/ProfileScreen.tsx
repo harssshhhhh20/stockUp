@@ -26,7 +26,7 @@ function bharosaCopy(score: number) {
 
 export function ProfileScreen() {
   const nav = useNavigation<any>();
-  const { email, mode, setMode, merchantProfile, store, signOut } = useAuth();
+  const { email, profile, mode, setMode, merchantProfile, store, signOut } = useAuth();
   const isMerchant = !!merchantProfile && !!store;
   const [stats, setStats] = useState<MerchantStats | null>(null);
 
@@ -43,6 +43,37 @@ export function ProfileScreen() {
     <View style={styles.flex}>
       <AppBar title="You" subtitle={email ?? undefined} />
       <ScrollView contentContainerStyle={[styles.content, contentWidth.column]} showsVerticalScrollIndicator={false}>
+        {/* Identity — who StockUp thinks you are, and how shops reach you. */}
+        <Card elevated>
+          <View style={styles.identityRow}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {(profile?.firstName?.[0] ?? email?.[0] ?? "?").toUpperCase()}
+              </Text>
+            </View>
+            <View style={styles.identityCopy}>
+              <Text variant="h2" numberOfLines={1}>
+                {[profile?.firstName, profile?.lastName].filter(Boolean).join(" ") || "Add your name"}
+              </Text>
+              <Text variant="bodySm" color={color.neutral.inkMuted} numberOfLines={1}>
+                {email}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.detailRows}>
+            <DetailRow icon="📱" label="Phone" value={profile?.phone ?? "Not added"} />
+            <DetailRow
+              icon="🪪"
+              label="Account"
+              value={profile?.isMerchant ? "Shopper + shopkeeper" : "Shopper"}
+            />
+            {profile?.hasStore ? (
+              <DetailRow icon="🏪" label="Shop" value={profile.storeName ?? "—"} />
+            ) : null}
+          </View>
+        </Card>
+
         {isMerchant && merchantProfile ? (
           <Card elevated>
             <View style={styles.scoreRow}>
@@ -176,6 +207,21 @@ function ScoreRule({
   );
 }
 
+/** One labelled fact. Kept flat and scannable rather than boxed. */
+function DetailRow({ icon, label, value }: { icon: string; label: string; value: string }) {
+  return (
+    <View style={styles.detailRow}>
+      <Text style={styles.detailIcon}>{icon}</Text>
+      <Text variant="bodySm" color={color.neutral.inkMuted} style={styles.detailLabel}>
+        {label}
+      </Text>
+      <Text variant="bodySm" weight="semibold" style={styles.detailValue} numberOfLines={1}>
+        {value}
+      </Text>
+    </View>
+  );
+}
+
 function pct(v: number | null) {
   return v == null ? "—" : `${Math.round(v * 100)}%`;
 }
@@ -206,6 +252,32 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   scoreCopy: { flex: 1, gap: 2 },
+  identityRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  avatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: color.brand[50],
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: {
+    fontFamily: font.display.bold,
+    fontSize: 22,
+    color: color.brand[600],
+  },
+  identityCopy: { flex: 1, gap: 1 },
+  detailRows: {
+    marginTop: spacing.md,
+    gap: spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: color.neutral.border,
+    paddingTop: spacing.sm,
+  },
+  detailRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
+  detailIcon: { fontSize: 14, width: 20 },
+  detailLabel: { width: 74 },
+  detailValue: { flex: 1, textAlign: "right" },
   statsIntro: { marginTop: -2, marginBottom: spacing.xs },
   statGrid: {
     flexDirection: "row",

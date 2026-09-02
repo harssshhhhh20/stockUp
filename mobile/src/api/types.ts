@@ -258,6 +258,9 @@ export type MerchantStats = {
 };
 
 export type NearbyStore = {
+  knownFor: string;
+  averageStars: number | null;
+  reviewCount: number;
   storeId: string;
   name: string;
   businessType: BusinessType;
@@ -267,4 +270,20 @@ export type NearbyStore = {
   band: "new" | "trusted" | "mixed" | "risky";
   tags: BharosaTag[];
   rankScore: number;
+};
+
+export type UserProfile = {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  roles: string[];
+  profileComplete: boolean;
+  isMerchant: boolean;
+  hasStore: boolean;
+  merchantId: string | null;
+  bharosaScore: number | null;
+  storeId: string | null;
+  storeName: string | null;
 };

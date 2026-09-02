@@ -71,6 +71,23 @@ public class User extends AuditableEntity {
         return Set.copyOf(roles);
     }
 
+    /**
+     * Set during onboarding. A shopkeeper needs a name and number to hand an
+     * order to a real person, so these stop being optional once someone is
+     * actually transacting.
+     */
+    public void updateProfile(String firstName, String lastName, String phone) {
+        if (firstName != null && !firstName.isBlank()) this.firstName = firstName.trim();
+        if (lastName != null) this.lastName = lastName.isBlank() ? null : lastName.trim();
+        if (phone != null && !phone.isBlank()) this.phone = phone.trim();
+    }
+
+    /** Whether we know enough about them to let them transact. */
+    public boolean isProfileComplete() {
+        return firstName != null && !firstName.isBlank()
+                && phone != null && !phone.isBlank();
+    }
+
     public void suspend() {
         this.accountStatus = AccountStatus.SUSPENDED;
     }

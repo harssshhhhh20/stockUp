@@ -40,7 +40,7 @@ export class ApiError extends Error {
 }
 
 type RequestOptions = {
-  method?: "GET" | "POST" | "PUT" | "DELETE";
+  method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
   body?: unknown;
   auth?: boolean;
   query?: Record<string, string | number | undefined>;
@@ -149,4 +149,6 @@ export const api = {
     request<T>(path, { method: "GET", query, auth }),
   post: <T>(path: string, body?: unknown, auth = true) =>
     request<T>(path, { method: "POST", body, auth }),
+  patch: <T>(path: string, body?: unknown, auth = true) =>
+    request<T>(path, { method: "PATCH", body, auth }),
 };

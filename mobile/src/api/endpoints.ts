@@ -20,6 +20,7 @@ import {
   ReservationStatus,
   StoreFeedbackSummary,
   StoreResponse,
+  UserProfile,
 } from "./types";
 
 // ---- Auth ----
@@ -27,7 +28,9 @@ export const AuthApi = {
   requestOtp: (email: string) => api.post<string>("/api/v1/auth/request-otp", { email }, false),
   verifyOtp: (email: string, otp: string) =>
     api.post<AuthResponse>("/api/v1/auth/verify-otp", { email, otp }, false),
-  me: () => api.get<string>("/api/v1/users/me"),
+  me: () => api.get<UserProfile>("/api/v1/users/me"),
+  updateProfile: (payload: { firstName: string; lastName?: string | null; phone: string }) =>
+    api.patch<UserProfile>("/api/v1/users/me", payload),
 };
 
 // ---- Merchant / Store ----
