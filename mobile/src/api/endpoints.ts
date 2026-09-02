@@ -2,6 +2,7 @@ import { api } from "./client";
 import {
   AppNotification,
   AuthResponse,
+  BharosaResponse,
   BasketDetails,
   BasketHistoryItem,
   BasketItemUnit,
@@ -11,8 +12,12 @@ import {
   MerchantOfferSummary,
   MerchantProfileResponse,
   Page,
+  FeedbackResponse,
+  MerchantStats,
+  OrderDetail,
   Reservation,
   ReservationStatus,
+  StoreFeedbackSummary,
   StoreResponse,
 } from "./types";
 
@@ -106,4 +111,36 @@ export const NotificationApi = {
     api.get<Page<AppNotification>>("/api/v1/notifications", { page, size }),
   unreadCount: () => api.get<{ unreadCount: number }>("/api/v1/notifications/unread-count"),
   markRead: (id: string) => api.post<AppNotification>(`/api/v1/notifications/${id}/read`),
+};
+
+// ---- Bharosa ----
+export const BharosaApi = {
+  forStore: (storeId: string) =>
+    api.get<BharosaResponse>(`/api/v1/bharosa/store/${storeId}`),
+};
+
+// ---- Feedback ----
+export const FeedbackApi = {
+  submit: (
+    reservationId: string,
+    payload: {
+      stars: number;
+      repliedFast?: boolean | null;
+      readyOnTime?: boolean | null;
+      stockAccurate?: boolean | null;
+      comment?: string | null;
+    }
+  ) => api.post<FeedbackResponse>(`/api/v1/feedback/reservation/${reservationId}`, payload),
+  forReservation: (reservationId: string) =>
+    api.get<FeedbackResponse | null>(`/api/v1/feedback/reservation/${reservationId}`),
+  forStore: (storeId: string, limit = 10) =>
+    api.get<StoreFeedbackSummary>(`/api/v1/feedback/store/${storeId}`, { limit }),
+};
+
+// ---- Order history ----
+export const OrderApi = {
+  detail: (reservationId: string) =>
+    api.get<OrderDetail>(`/api/v1/orders/${reservationId}`),
+  merchantStats: (windowDays = 30) =>
+    api.get<MerchantStats>("/api/v1/orders/merchant/stats", { windowDays }),
 };

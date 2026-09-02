@@ -144,12 +144,23 @@ export function ReservationsScreen() {
               <Card
                 key={r.id}
                 elevated
-                onPress={() =>
-                  nav.navigate(
-                    isMerchant ? "MerchantReservationDetail" : "ReservationDetail",
-                    { reservationId: r.id }
-                  )
-                }
+                onPress={() => {
+                  // A settled order is history — show the timeline. A live one
+                  // still needs its handover screen and collection code.
+                  const settled =
+                    r.status === "COMPLETED" ||
+                    r.status === "EXPIRED" ||
+                    r.status === "CUSTOMER_CANCELLED" ||
+                    r.status === "MERCHANT_CANCELLED";
+                  if (settled) {
+                    nav.navigate("OrderDetail", { reservationId: r.id });
+                  } else {
+                    nav.navigate(
+                      isMerchant ? "MerchantReservationDetail" : "ReservationDetail",
+                      { reservationId: r.id }
+                    );
+                  }
+                }}
               >
                 <View style={styles.rowBetween}>
                   <StatusPill status={s.status} label={s.label} />
@@ -166,6 +177,12 @@ export function ReservationsScreen() {
                     minute: "2-digit",
                   })}
                 </Text>
+
+                {!isMerchant && r.status === "COMPLETED" ? (
+                  <Text variant="bodySm" color={color.brand[600]} weight="semibold">
+                    Tap to see the timeline or rate it →
+                  </Text>
+                ) : null}
               </Card>
             );
           })

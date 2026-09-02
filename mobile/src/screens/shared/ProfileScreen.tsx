@@ -1,19 +1,26 @@
-import React from "react";
+import React, { useCallback, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { AppBar } from "../../components/AppBar";
 import { Card } from "../../components/Card";
 import { Text } from "../../components/Text";
 import { Button } from "../../components/Button";
 import { BharosaRing } from "../../components/BharosaRing";
+import { OrderApi } from "../../api/endpoints";
+import { MerchantStats } from "../../api/types";
 import { Logo } from "../../components/Logo";
 import { useAuth } from "../../state/AuthContext";
-import { color, spacing } from "../../theme/tokens";
+import { color, spacing, font } from "../../theme/tokens";
 import { contentWidth } from "../../theme/layoutStyles";
 
+/**
+ * Thresholds mirror the engine's own bands (trusted 75+, mixed 45+), so the
+ * encouragement a shopkeeper reads never contradicts the colour and wording a
+ * shopper sees for the same score.
+ */
 function bharosaCopy(score: number) {
-  if (score >= 71) return "Customers can count on you. Keep replying and completing pickups.";
-  if (score >= 41) return "You're building trust. Reply to requests and complete pickups to climb.";
+  if (score >= 75) return "Customers can count on you. Keep replying and completing pickups.";
+  if (score >= 45) return "You're building trust. Reply faster and complete every pickup to climb.";
   return "Your score is low. Reply to requests and don't cancel confirmed orders.";
 }
 
@@ -21,6 +28,16 @@ export function ProfileScreen() {
   const nav = useNavigation<any>();
   const { email, mode, setMode, merchantProfile, store, signOut } = useAuth();
   const isMerchant = !!merchantProfile && !!store;
+  const [stats, setStats] = useState<MerchantStats | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!isMerchant) return;
+      OrderApi.merchantStats(30)
+        .then(setStats)
+        .catch(() => setStats(null));
+    }, [isMerchant])
+  );
 
   return (
     <View style={styles.flex}>
@@ -29,11 +46,11 @@ export function ProfileScreen() {
         {isMerchant && merchantProfile ? (
           <Card elevated>
             <View style={styles.scoreRow}>
-              <BharosaRing score={merchantProfile.bharosaScore} size="lg" />
+              <BharosaRing score={stats?.bharosaScore ?? merchantProfile.bharosaScore} size="lg" />
               <View style={styles.scoreCopy}>
                 <Text variant="h2">Bharosa Score</Text>
                 <Text variant="bodySm" color={color.neutral.inkMuted}>
-                  {bharosaCopy(merchantProfile.bharosaScore)}
+                  {bharosaCopy(stats?.bharosaScore ?? merchantProfile.bharosaScore)}
                 </Text>
               </View>
             </View>
@@ -45,6 +62,37 @@ export function ProfileScreen() {
               <ScoreRule delta="−8" text="Open it, then ignore it" tone="urgent" />
               <ScoreRule delta="−10" text="Cancel a confirmed order" tone="urgent" />
               <ScoreRule delta="−25" text="Let an order expire" tone="urgent" />
+            </View>
+          </Card>
+        ) : null}
+
+        {isMerchant && stats ? (
+          <Card elevated>
+            <Text variant="caption" color={color.neutral.inkMuted}>
+              Last 30 days
+            </Text>
+            <Text variant="bodySm" color={color.neutral.inkMuted} style={styles.statsIntro}>
+              These are the numbers your Bharosa is built from.
+            </Text>
+
+            <View style={styles.statGrid}>
+              <Stat label="Orders completed" value={String(stats.ordersCompleted)} />
+              <Stat
+                label="Average reply"
+                value={
+                  stats.averageResponseSeconds == null
+                    ? "—"
+                    : stats.averageResponseSeconds < 60
+                    ? `${stats.averageResponseSeconds}s`
+                    : `${Math.floor(stats.averageResponseSeconds / 60)}m ${
+                        stats.averageResponseSeconds % 60
+                      }s`
+                }
+              />
+              <Stat label="Requests answered" value={pct(stats.answeredRate)} />
+              <Stat label="Completion rate" value={pct(stats.completionRate)} />
+              <Stat label="Cancellations" value={pct(stats.cancellationRate)} />
+              <Stat label="Different shoppers" value={String(stats.distinctCustomers)} />
             </View>
           </Card>
         ) : null}
@@ -128,6 +176,22 @@ function ScoreRule({
   );
 }
 
+function pct(v: number | null) {
+  return v == null ? "—" : `${Math.round(v * 100)}%`;
+}
+
+/** One measured figure. Deliberately plain — this is a dashboard, not a poster. */
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.stat}>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text variant="bodySm" color={color.neutral.inkMuted}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: color.neutral.background },
   content: {
@@ -142,6 +206,23 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   scoreCopy: { flex: 1, gap: 2 },
+  statsIntro: { marginTop: -2, marginBottom: spacing.xs },
+  statGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  stat: {
+    minWidth: "30%",
+    flexGrow: 1,
+    gap: 1,
+  },
+  statValue: {
+    fontFamily: font.mono.bold,
+    fontSize: 20,
+    color: color.neutral.ink,
+  },
   rules: {
     marginTop: spacing.md,
     gap: 6,

@@ -9,8 +9,11 @@ import { StatusPill } from "../../components/StatusPill";
 import { LiveTimer } from "../../components/LiveTimer";
 import { EmptyState } from "../../components/EmptyState";
 import { useToast } from "../../components/Toast";
-import { BasketApi, MerchantOfferApi, ReservationApi } from "../../api/endpoints";
-import { BasketDetails, MerchantOfferSummary } from "../../api/types";
+import { BasketApi, BharosaApi, MerchantOfferApi, ReservationApi } from "../../api/endpoints";
+import { BasketDetails, BharosaResponse, MerchantOfferSummary } from "../../api/types";
+import { BharosaBadge } from "../../components/BharosaBadge";
+import { ReputationBanner } from "../../components/ReputationBanner";
+import { BharosaSheet } from "../../components/BharosaSheet";
 import { basketStatus, offerItemStatus } from "../../theme/statusMap";
 import { color, radius, spacing } from "../../theme/tokens";
 import { contentWidth } from "../../theme/layoutStyles";
@@ -26,6 +29,9 @@ export function BasketDetailScreen() {
   const [offers, setOffers] = useState<MerchantOfferSummary[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [reservingId, setReservingId] = useState<string | null>(null);
+  // Trust, keyed by store, so each reply can carry its own reputation.
+  const [bharosa, setBharosa] = useState<Record<string, BharosaResponse>>({});
+  const [openSheet, setOpenSheet] = useState<BharosaResponse | null>(null);
 
   const load = useCallback(async () => {
     const [b, o] = await Promise.allSettled([
@@ -33,7 +39,19 @@ export function BasketDetailScreen() {
       MerchantOfferApi.forBasket(basketId),
     ]);
     if (b.status === "fulfilled") setBasket(b.value);
-    setOffers(o.status === "fulfilled" ? o.value : []);
+    const list = o.status === "fulfilled" ? o.value : [];
+    setOffers(list);
+
+    // Reputation is fetched per replying shop. Failures are silent: a missing
+    // score should never stop someone seeing that a shop has their milk.
+    const results = await Promise.allSettled(
+      list.map((offer) => BharosaApi.forStore(offer.storeId))
+    );
+    const next: Record<string, BharosaResponse> = {};
+    results.forEach((r) => {
+      if (r.status === "fulfilled" && r.value?.storeId) next[r.value.storeId] = r.value;
+    });
+    setBharosa(next);
   }, [basketId]);
 
   useFocusEffect(
@@ -119,12 +137,24 @@ export function BasketDetailScreen() {
                 const canReserve = offer.status === "SUBMITTED" && basket.status === "ACTIVE";
                 return (
                   <Card key={offer.merchantOfferId} elevated>
+                    {bharosa[offer.storeId]?.tags?.length ? (
+                      <ReputationBanner tags={bharosa[offer.storeId].tags} />
+                    ) : null}
+
                     <View style={styles.rowBetween}>
                       <Text variant="h3">{offer.storeName}</Text>
                       {offer.status === "RESERVED" ? (
                         <StatusPill status="positive" label="Reserved" />
                       ) : null}
                     </View>
+
+                    {bharosa[offer.storeId] ? (
+                      <BharosaBadge
+                        score={bharosa[offer.storeId].score}
+                        band={bharosa[offer.storeId].band}
+                        onPress={() => setOpenSheet(bharosa[offer.storeId])}
+                      />
+                    ) : null}
 
                     <View style={styles.offerItems}>
                       {offer.items.map((item) => {
@@ -166,6 +196,12 @@ export function BasketDetailScreen() {
           </>
         )}
       </ScrollView>
+
+      <BharosaSheet
+        visible={!!openSheet}
+        data={openSheet}
+        onClose={() => setOpenSheet(null)}
+      />
     </View>
   );
 }

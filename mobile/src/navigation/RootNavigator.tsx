@@ -16,6 +16,8 @@ import { MerchantReservationDetailScreen } from "../screens/merchant/MerchantRes
 import { ReservationsScreen } from "../screens/shared/ReservationsScreen";
 import { NotificationsScreen } from "../screens/shared/NotificationsScreen";
 import { ProfileScreen } from "../screens/shared/ProfileScreen";
+import { OrderDetailScreen } from "../screens/shared/OrderDetailScreen";
+import { RateOrderScreen } from "../screens/customer/RateOrderScreen";
 import { BecomeMerchantScreen } from "../screens/onboarding/BecomeMerchantScreen";
 import { TabIcon } from "../components/TabIcon";
 import { color, font } from "../theme/tokens";
@@ -94,6 +96,8 @@ export function RootNavigator() {
             <Stack.Screen name="CreateBasket" component={CreateBasketScreen} />
             <Stack.Screen name="BasketDetail" component={BasketDetailScreen} />
             <Stack.Screen name="ReservationDetail" component={ReservationDetailScreen} />
+      <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
+      <Stack.Screen name="RateOrder" component={RateOrderScreen} />
             <Stack.Screen name="RespondToRequest" component={RespondToRequestScreen} />
             <Stack.Screen
               name="MerchantReservationDetail"

@@ -177,3 +177,82 @@ export type MerchantSummary = {
   bharosaScore: number;
   createdAt: string;
 };
+
+// ---- Bharosa ----
+export type BharosaTone = "positive" | "attention" | "urgent" | "info" | "special";
+
+export type BharosaTag = {
+  icon: string;
+  label: string;
+  tone: BharosaTone;
+};
+
+export type BharosaResponse = {
+  merchantId: string;
+  storeId: string | null;
+  storeName: string | null;
+  score: number;
+  band: "new" | "trusted" | "mixed" | "risky";
+  unproven: boolean;
+  tags: BharosaTag[];
+  reasons: string[];
+  basedOnInteractions: number;
+  distinctCustomers: number;
+};
+
+// ---- Feedback ----
+export type FeedbackResponse = {
+  id: string;
+  reservationId: string;
+  stars: number;
+  repliedFast: boolean | null;
+  readyOnTime: boolean | null;
+  stockAccurate: boolean | null;
+  comment: string | null;
+  verifiedPurchase: boolean;
+  reviewerName: string;
+  createdAt: string;
+};
+
+export type StoreFeedbackSummary = {
+  averageStars: number | null;
+  totalReviews: number;
+  commonlySaid: string[];
+  recent: FeedbackResponse[];
+};
+
+// ---- Order history ----
+export type OrderTimelineEntry = {
+  eventType: string;
+  label: string;
+  actor: "CUSTOMER" | "MERCHANT" | "SYSTEM";
+  occurredAt: string;
+};
+
+export type OrderDetail = {
+  reservationId: string;
+  basketId: string;
+  storeId: string;
+  storeName: string;
+  status: ReservationStatus;
+  reservedAt: string;
+  activeAt: string | null;
+  items: string[];
+  responseSeconds: number | null;
+  fulfilmentSeconds: number | null;
+  cancellationReason: string | null;
+  timeline: OrderTimelineEntry[];
+  feedback: FeedbackResponse | null;
+  canRate: boolean;
+};
+
+export type MerchantStats = {
+  ordersCompleted: number;
+  averageResponseSeconds: number | null;
+  answeredRate: number | null;
+  completionRate: number | null;
+  cancellationRate: number | null;
+  repeatCustomerRate: number | null;
+  distinctCustomers: number;
+  bharosaScore: number;
+};
