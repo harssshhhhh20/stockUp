@@ -11,6 +11,7 @@ import com.stockup.backend.domain.notification.repository.NotificationRepository
 import com.stockup.backend.domain.notification.service.NotificationService;
 import com.stockup.backend.domain.user.entity.User;
 import com.stockup.backend.infrastructure.notification.email.service.EmailService;
+import com.stockup.backend.infrastructure.notification.push.PushService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +29,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationMapper notificationMapper;
     private final CurrentUserService currentUserService;
     private final EmailService emailService;
+    private final PushService pushService;
 
     @Override
     public void notify(
@@ -47,8 +49,10 @@ public class NotificationServiceImpl implements NotificationService {
 
         notificationRepository.save(notification);
 
-        // Mirror it to email so people hear about it when the app is closed.
-        // Async and failure-tolerant — the in-app feed is the source of truth.
+        // Mirror it out so people hear about it when the app is closed. Both
+        // channels are async and failure-tolerant — the in-app feed is the
+        // source of truth, and a bounced email or a dead device must never
+        // affect the thing that was actually notified about.
         if (recipient.getEmail() != null) {
             emailService.sendNotification(
                     recipient.getEmail(),
@@ -56,6 +60,15 @@ public class NotificationServiceImpl implements NotificationService {
                     message
             );
         }
+
+        pushService.send(
+                recipient.getId(),
+                title,
+                message,
+                referenceId == null
+                        ? java.util.Map.of("type", type.name())
+                        : java.util.Map.of("type", type.name(), "referenceId", referenceId.toString())
+        );
     }
 
     @Override

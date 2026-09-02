@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { AppBar } from "../../components/AppBar";
 import { Card } from "../../components/Card";
 import { Text } from "../../components/Text";
@@ -53,7 +53,11 @@ const EMPTY: Draft = { productName: "", quantity: "1", unit: "PIECE", brand: "" 
 
 export function CreateBasketScreen() {
   const nav = useNavigation<any>();
+  const route = useRoute<any>();
   const toast = useToast();
+  // Set when the shopper came back from picking specific shops.
+  const storeIds: string[] | undefined = route.params?.storeIds;
+  const targeted = !!storeIds?.length;
   const { coords, status: locationStatus, request: requestLocation } = useLocation();
   const [items, setItems] = useState<Draft[]>([{ ...EMPTY }]);
   const [radiusKm, setRadiusKm] = useState(3);
@@ -82,13 +86,23 @@ export function CreateBasketScreen() {
       }));
 
     try {
-      const res = await BasketApi.create({
-        targetMode: "NEARBY",
-        searchRadiusMeters: radiusKm * 1000,
-        basketLatitude: coords.latitude,
-        basketLongitude: coords.longitude,
-        items: payloadItems,
-      });
+      const res = await BasketApi.create(
+        targeted
+          ? {
+              targetMode: "SELECTED_STORES",
+              basketLatitude: coords.latitude,
+              basketLongitude: coords.longitude,
+              items: payloadItems,
+              storeIds,
+            }
+          : {
+              targetMode: "NEARBY",
+              searchRadiusMeters: radiusKm * 1000,
+              basketLatitude: coords.latitude,
+              basketLongitude: coords.longitude,
+              items: payloadItems,
+            }
+      );
       toast("List sent to nearby shops 🎉", "positive");
       nav.replace("BasketDetail", { basketId: res.basketId });
     } catch (e) {
@@ -171,11 +185,30 @@ export function CreateBasketScreen() {
         />
 
         <Card elevated>
-          <Text variant="caption" color={color.neutral.inkMuted}>
-            How far to look
-          </Text>
-          <View style={styles.radiusRow}>
-            {[1, 3, 5, 10].map((km) => {
+          <View style={styles.cardHead}>
+            <Text variant="caption" color={color.neutral.inkMuted}>
+              {targeted ? "Asking these shops" : "How far to look"}
+            </Text>
+            <Pressable
+              onPress={() =>
+                nav.navigate("PickShops", { selected: storeIds ?? [] })
+              }
+              hitSlop={8}
+            >
+              <Text variant="bodySm" weight="semibold" color={color.brand[600]}>
+                {targeted ? "Change" : "Pick shops instead"}
+              </Text>
+            </Pressable>
+          </View>
+
+          {targeted ? (
+            <Text variant="body" color={color.neutral.inkMuted}>
+              {storeIds!.length} shop{storeIds!.length === 1 ? "" : "s"} chosen — only they
+              will see this list.
+            </Text>
+          ) : null}
+          <View style={[styles.radiusRow, targeted && styles.hidden]}>
+            {(targeted ? [] : [1, 3, 5, 10]).map((km) => {
               const active = radiusKm === km;
               return (
                 <Pressable
@@ -225,7 +258,9 @@ export function CreateBasketScreen() {
           disabled={!valid}
         />
         <Text variant="bodySm" color={color.neutral.inkFaint} style={styles.footnote}>
-          Shops near you get 15 minutes to reply with what they have.
+          {targeted
+            ? "The shops you picked get 15 minutes to reply."
+            : "Shops near you get 15 minutes to reply with what they have."}
         </Text>
       </ScrollView>
     </View>
@@ -292,6 +327,7 @@ const styles = StyleSheet.create({
   footnote: {
     textAlign: "center",
   },
+  hidden: { display: "none" },
   locationCard: {
     borderColor: color.status.attention.base,
     borderWidth: 1.5,

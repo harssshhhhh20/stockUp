@@ -256,3 +256,15 @@ export type MerchantStats = {
   distinctCustomers: number;
   bharosaScore: number;
 };
+
+export type NearbyStore = {
+  storeId: string;
+  name: string;
+  businessType: BusinessType;
+  city: string;
+  distanceKm: number;
+  bharosa: number;
+  band: "new" | "trusted" | "mixed" | "risky";
+  tags: BharosaTag[];
+  rankScore: number;
+};

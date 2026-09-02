@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>StockUp Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  /* Same tokens as the app, so admin doesn't feel like a different product. */
+  :root {
+    --paper:#F5F3EA; --surface:#fff; --surface-2:#ECE8DB;
+    --rule:#DEDACB; --ink:#1C2321; --ink-mid:#4E5852; --ink-low:#686F66;
+    --brand:#0E7C74; --brand-deep:#0A544F; --brand-wash:#E9F5F3;
+    --good:#2E9E5B; --good-ink:#1F7A44; --good-wash:#E3F5EA;
+    --warn:#D97706; --warn-ink:#9A5B0C; --warn-wash:#FDF0DD;
+    --bad:#D6503F;  --bad-ink:#A83A2C;  --bad-wash:#FBE7E5;
+    --info:#3B6EA5; --info-ink:#2C5480; --info-wash:#E6EEF6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+       font-family:Manrope,system-ui,sans-serif;font-size:15px;line-height:1.6}
+  h1,h2{font-family:"Baloo 2",sans-serif;margin:0}
+  .mono{font-family:"JetBrains Mono",monospace}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 22px 80px}
+
+  header{display:flex;align-items:center;justify-content:space-between;
+         padding-bottom:18px;border-bottom:1px solid var(--rule);margin-bottom:24px;gap:16px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:9px}
+  .mark{width:11px;height:11px;border-radius:3px;background:var(--brand)}
+  h1{font-size:22px}
+  .who{font-size:13px;color:var(--ink-low)}
+
+  .tabs{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap}
+  .tab{padding:8px 15px;border-radius:99px;border:1px solid var(--rule);
+       background:var(--surface);cursor:pointer;font:inherit;font-size:14px;font-weight:600;color:var(--ink-mid)}
+  .tab[aria-selected="true"]{background:var(--brand);border-color:var(--brand);color:#fff}
+  .tab:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+
+  .card{background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:18px 20px;margin-bottom:14px}
+  label{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+        color:var(--ink-low);font-weight:700;margin-bottom:6px}
+  input,select{width:100%;height:44px;padding:0 12px;border-radius:9px;border:1.5px solid var(--rule);
+        background:var(--surface);font:inherit;color:var(--ink)}
+  input:focus,select:focus{outline:none;border-color:var(--brand)}
+  button.primary{height:44px;padding:0 18px;border:0;border-radius:9px;background:var(--brand);
+        color:#fff;font:inherit;font-weight:700;cursor:pointer}
+  button.primary:disabled{opacity:.5;cursor:default}
+  button.ghost{height:34px;padding:0 12px;border:1px solid var(--rule);border-radius:8px;
+        background:var(--surface);font:inherit;font-size:13px;font-weight:600;cursor:pointer;color:var(--ink-mid)}
+  button.danger{border-color:var(--bad);color:var(--bad-ink);background:var(--bad-wash)}
+  .row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+  .grow{flex:1;min-width:200px}
+
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+     color:var(--ink-low);padding:0 12px 9px;border-bottom:1px solid var(--rule)}
+  td{padding:11px 12px;border-bottom:1px solid var(--surface-2);vertical-align:middle}
+  tr:last-child td{border-bottom:0}
+  .tablewrap{overflow-x:auto}
+
+  .pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:99px;
+        font-size:11.5px;font-weight:700;white-space:nowrap}
+  .p-good{background:var(--good-wash);color:var(--good-ink)}
+  .p-warn{background:var(--warn-wash);color:var(--warn-ink)}
+  .p-bad{background:var(--bad-wash);color:var(--bad-ink)}
+  .p-info{background:var(--info-wash);color:var(--info-ink)}
+
+  .score{font-family:"JetBrains Mono",monospace;font-weight:700;font-variant-numeric:tabular-nums}
+  .muted{color:var(--ink-low);font-size:13px}
+  .empty{padding:40px 20px;text-align:center;color:var(--ink-low)}
+  .err{background:var(--bad-wash);color:var(--bad-ink);padding:10px 14px;border-radius:9px;
+       font-size:14px;margin-bottom:14px}
+  .hidden{display:none}
+  .note{font-size:12.5px;color:var(--ink-low);margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand"><span class="mark"></span><h1>StockUp Admin</h1></div>
+    <div class="row" style="align-items:center">
+      <span class="who" id="who"></span>
+      <button class="ghost hidden" id="signout">Sign out</button>
+    </div>
+  </header>
+
+  <div id="err" class="err hidden"></div>
+
+  <!-- ---------- sign in ---------- -->
+  <section id="auth">
+    <div class="card" style="max-width:440px">
+      <h2 style="font-size:18px;margin-bottom:4px">Sign in</h2>
+      <p class="muted" style="margin:0 0 16px">
+        Admin access only. Your account must already have the ADMIN role.
+      </p>
+
+      <div id="step-email">
+        <label for="email">Email</label>
+        <div class="row">
+          <div class="grow"><input id="email" type="email" placeholder="you@example.com" autocomplete="email" /></div>
+          <button class="primary" id="send-otp">Send code</button>
+        </div>
+      </div>
+
+      <div id="step-otp" class="hidden" style="margin-top:14px">
+        <label for="otp">6-digit code</label>
+        <div class="row">
+          <div class="grow"><input id="otp" inputmode="numeric" maxlength="6" placeholder="123456" class="mono" /></div>
+          <button class="primary" id="verify-otp">Sign in</button>
+        </div>
+        <p class="note">Sent to your email. In console mode it's printed in the server log.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- console ---------- -->
+  <section id="console" class="hidden">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-view="merchants" aria-selected="true">Merchants</button>
+      <button class="tab" role="tab" data-view="stores" aria-selected="false">Stores</button>
+      <button class="tab" role="tab" data-view="reservations" aria-selected="false">Reservations</button>
+    </div>
+
+    <div id="filters" class="card hidden">
+      <div class="row">
+        <div class="grow">
+          <label for="status">Status</label>
+          <select id="status">
+            <option>ACTIVE</option>
+            <option>PENDING_NOTIFICATION</option>
+            <option>COMPLETED</option>
+            <option>MERCHANT_CANCELLED</option>
+            <option>CUSTOMER_CANCELLED</option>
+            <option>EXPIRED</option>
+          </select>
+        </div>
+        <button class="primary" id="apply">Apply</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="tablewrap"><table id="table"></table></div>
+      <div class="empty hidden" id="empty">Nothing here.</div>
+    </div>
+  </section>
+</div>
+
+<script>
+const API = localStorage.getItem("stockup.adminApi") || "http://localhost:8080";
+const $ = (id) => document.getElementById(id);
+let view = "merchants";
+
+function token() { return localStorage.getItem("stockup.adminToken"); }
+function setToken(t) { t ? localStorage.setItem("stockup.adminToken", t) : localStorage.removeItem("stockup.adminToken"); }
+function showError(msg) { $("err").textContent = msg; $("err").classList.remove("hidden"); }
+function clearError() { $("err").classList.add("hidden"); }
+
+async function call(path, options = {}) {
+  const res = await fetch(API + path, {
+    method: options.method || "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token() ? { Authorization: "Bearer " + token() } : {})
+    },
+    body: options.body ? JSON.stringify(options.body) : undefined
+  });
+  const json = await res.json().catch(() => null);
+  if (!res.ok || !json?.success) {
+    // 403 here almost always means "signed in, but not an admin" — worth
+    // saying plainly rather than showing a generic failure.
+    if (res.status === 403) throw new Error("That account isn't an admin.");
+    throw new Error(json?.errors?.[0]?.message || json?.message || `Request failed (${res.status})`);
+  }
+  return json.data;
+}
+
+// ---- auth ----
+$("send-otp").onclick = async () => {
+  clearError();
+  const email = $("email").value.trim();
+  if (!email) return;
+  try {
+    await call("/api/v1/auth/request-otp", { method: "POST", body: { email } });
+    $("step-otp").classList.remove("hidden");
+    $("otp").focus();
+  } catch (e) { showError(e.message); }
+};
+
+$("verify-otp").onclick = async () => {
+  clearError();
+  try {
+    const data = await call("/api/v1/auth/verify-otp", {
+      method: "POST",
+      body: { email: $("email").value.trim(), otp: $("otp").value.trim() }
+    });
+    setToken(data.accessToken);
+    await enterConsole($("email").value.trim());
+  } catch (e) { showError(e.message); }
+};
+
+$("signout").onclick = () => { setToken(null); location.reload(); };
+
+async function enterConsole(email) {
+  // Prove the ADMIN role before showing anything, so a non-admin never sees
+  // an empty console and wonders what broke.
+  try {
+    await call("/api/v1/admin/merchants?size=1");
+  } catch (e) {
+    showError(e.message);
+    setToken(null);
+    return;
+  }
+  $("auth").classList.add("hidden");
+  $("console").classList.remove("hidden");
+  $("signout").classList.remove("hidden");
+  $("who").textContent = email || "";
+  render();
+}
+
+// ---- views ----
+document.querySelectorAll(".tab").forEach(t => {
+  t.onclick = () => {
+    view = t.dataset.view;
+    document.querySelectorAll(".tab").forEach(x => x.setAttribute("aria-selected", String(x === t)));
+    $("filters").classList.toggle("hidden", view !== "reservations");
+    render();
+  };
+});
+$("apply").onclick = render;
+
+function bandPill(score) {
+  if (score >= 75) return `<span class="pill p-good">trusted</span>`;
+  if (score >= 45) return `<span class="pill p-warn">mixed</span>`;
+  return `<span class="pill p-bad">at risk</span>`;
+}
+
+function statusPill(s) {
+  const good = ["COMPLETED"], bad = ["MERCHANT_CANCELLED", "EXPIRED"], warn = ["PENDING_NOTIFICATION"];
+  const cls = good.includes(s) ? "p-good" : bad.includes(s) ? "p-bad" : warn.includes(s) ? "p-warn" : "p-info";
+  return `<span class="pill ${cls}">${s.replace(/_/g, " ").toLowerCase()}</span>`;
+}
+
+async function render() {
+  clearError();
+  const table = $("table");
+  table.innerHTML = "";
+  $("empty").classList.add("hidden");
+
+  try {
+    if (view === "merchants") {
+      const page = await call("/api/v1/admin/merchants?size=50");
+      const rows = page.content || [];
+      if (!rows.length) return $("empty").classList.remove("hidden");
+      table.innerHTML = `<thead><tr><th>Merchant</th><th>Bharosa</th><th></th><th>Joined</th><th>Actions</th></tr></thead><tbody>` +
+        rows.map(m => `<tr>
+          <td>${m.email}</td>
+          <td class="score">${m.bharosaScore}</td>
+          <td>${bandPill(m.bharosaScore)}</td>
+          <td class="muted">${new Date(m.createdAt).toLocaleDateString()}</td>
+          <td><button class="ghost" data-adjust="${m.merchantId}">Adjust score</button></td>
+        </tr>`).join("") + `</tbody>`;
+
+      table.querySelectorAll("[data-adjust]").forEach(b => {
+        b.onclick = () => adjust(b.dataset.adjust);
+      });
+
+    } else if (view === "stores") {
+      const page = await call("/api/v1/admin/stores?size=50");
+      const rows = page.content || [];
+      if (!rows.length) return $("empty").classList.remove("hidden");
+      table.innerHTML = `<thead><tr><th>Store</th><th>Type</th><th>City</th><th>Merchant</th></tr></thead><tbody>` +
+        rows.map(s => `<tr>
+          <td><strong>${s.name}</strong></td>
+          <td class="muted">${(s.businessType || "").replace(/_/g, " ").toLowerCase()}</td>
+          <td class="muted">${s.city || "—"}</td>
+          <td class="muted">${s.merchantEmail}</td>
+        </tr>`).join("") + `</tbody>`;
+
+    } else {
+      const status = $("status").value;
+      const page = await call(`/api/v1/admin/reservations?status=${status}&size=50`);
+      const rows = page.content || [];
+      if (!rows.length) return $("empty").classList.remove("hidden");
+      table.innerHTML = `<thead><tr><th>Reserved</th><th>Status</th><th>Store</th><th>Reservation</th></tr></thead><tbody>` +
+        rows.map(r => `<tr>
+          <td class="muted">${new Date(r.reservedAt).toLocaleString()}</td>
+          <td>${statusPill(r.status)}</td>
+          <td class="mono muted">${(r.storeId || "").slice(0, 8)}…</td>
+          <td class="mono muted">${r.id.slice(0, 8)}…</td>
+        </tr>`).join("") + `</tbody>`;
+    }
+  } catch (e) { showError(e.message); }
+}
+
+async function adjust(merchantId) {
+  const raw = prompt("Adjust Bharosa by how much? (e.g. -10 or 5)");
+  if (raw === null) return;
+  const delta = Number(raw);
+  if (!Number.isFinite(delta) || delta === 0) return showError("Enter a non-zero number.");
+
+  const reason = prompt("Why? This is recorded against the merchant.");
+  if (!reason || !reason.trim()) return showError("A reason is required.");
+
+  try {
+    await call(`/api/v1/admin/merchants/${merchantId}/bharosa-score`, {
+      method: "POST", body: { delta, reason: reason.trim() }
+    });
+    render();
+  } catch (e) { showError(e.message); }
+}
+
+// Resume an existing session.
+if (token()) enterConsole(localStorage.getItem("stockup.adminEmail") || "");
+</script>
+</body>
+</html>

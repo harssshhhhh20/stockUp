@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../state/AuthContext";
+import { usePushNotifications } from "../state/usePushNotifications";
 import { SignInScreen } from "../screens/auth/SignInScreen";
 import { BasketsScreen } from "../screens/customer/BasketsScreen";
 import { CreateBasketScreen } from "../screens/customer/CreateBasketScreen";
@@ -18,6 +19,7 @@ import { NotificationsScreen } from "../screens/shared/NotificationsScreen";
 import { ProfileScreen } from "../screens/shared/ProfileScreen";
 import { OrderDetailScreen } from "../screens/shared/OrderDetailScreen";
 import { RateOrderScreen } from "../screens/customer/RateOrderScreen";
+import { PickShopsScreen } from "../screens/customer/PickShopsScreen";
 import { BecomeMerchantScreen } from "../screens/onboarding/BecomeMerchantScreen";
 import { TabIcon } from "../components/TabIcon";
 import { color, font } from "../theme/tokens";
@@ -76,6 +78,8 @@ function Tabs() {
 
 export function RootNavigator() {
   const { booting, signedIn } = useAuth();
+  // Register for push once signed in; failures are silent by design.
+  usePushNotifications(signedIn);
 
   if (booting) {
     return (
@@ -98,6 +102,7 @@ export function RootNavigator() {
             <Stack.Screen name="ReservationDetail" component={ReservationDetailScreen} />
       <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
       <Stack.Screen name="RateOrder" component={RateOrderScreen} />
+      <Stack.Screen name="PickShops" component={PickShopsScreen} />
             <Stack.Screen name="RespondToRequest" component={RespondToRequestScreen} />
             <Stack.Screen
               name="MerchantReservationDetail"

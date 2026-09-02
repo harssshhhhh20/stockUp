@@ -14,6 +14,7 @@ import {
   Page,
   FeedbackResponse,
   MerchantStats,
+  NearbyStore,
   OrderDetail,
   Reservation,
   ReservationStatus,
@@ -143,4 +144,14 @@ export const OrderApi = {
     api.get<OrderDetail>(`/api/v1/orders/${reservationId}`),
   merchantStats: (windowDays = 30) =>
     api.get<MerchantStats>("/api/v1/orders/merchant/stats", { windowDays }),
+};
+
+// ---- Discovery ----
+export const DiscoveryApi = {
+  nearby: (latitude: number, longitude: number, radiusMeters = 5000) =>
+    api.get<NearbyStore[]>("/api/v1/discovery/stores", {
+      latitude,
+      longitude,
+      radiusMeters,
+    }),
 };
