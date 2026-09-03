@@ -123,6 +123,20 @@ public class Basket extends AuditableEntity {
         requireStatus(BasketStatus.ACTIVE);
         this.status = BasketStatus.RESERVED;
     }
+    /**
+     * Puts the list back in front of the shops that replied.
+     *
+     * Reserving closes a list so it can't be promised to two shops at once, but
+     * a reservation that falls through — cancelled inside the grace window, or
+     * abandoned by the shop — must not take the list down with it. Without this
+     * the shopper is left holding a basket nobody can fulfil and no way to
+     * choose again.
+     */
+    public void reopen() {
+        requireStatus(BasketStatus.RESERVED);
+        this.status = BasketStatus.ACTIVE;
+    }
+
     public void expire() {
         requireStatus(BasketStatus.ACTIVE);
         this.status = BasketStatus.EXPIRED;

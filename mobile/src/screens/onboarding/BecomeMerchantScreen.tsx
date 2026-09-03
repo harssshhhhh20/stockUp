@@ -10,23 +10,32 @@ import { useToast } from "../../components/Toast";
 import { MerchantApi, StoreApi } from "../../api/endpoints";
 import { BusinessType } from "../../api/types";
 import { useAuth } from "../../state/AuthContext";
-import { color, radius, spacing } from "../../theme/tokens";
+import { color, font, radius, spacing } from "../../theme/tokens";
 import { contentWidth } from "../../theme/layoutStyles";
 import { useLocation } from "../../state/useLocation";
 import { ApiError } from "../../api/client";
 
-const TYPES: { key: BusinessType; label: string; emoji: string }[] = [
-  { key: "KIRANA", label: "Kirana", emoji: "🏪" },
-  { key: "SUPERMARKET", label: "Supermarket", emoji: "🛒" },
-  { key: "PHARMACY", label: "Pharmacy", emoji: "💊" },
-  { key: "STATIONERY", label: "Stationery", emoji: "✏️" },
-  { key: "GENERAL_STORE", label: "General", emoji: "📦" },
+/**
+ * StockUp is a kirana app first, on purpose. Every other category needs its own
+ * vocabulary before it works — a pharmacy needs prescriptions and controlled
+ * substances, stationery needs brand-and-size matching. Shipping them as
+ * selectable options would mean shipping a worse version of each.
+ *
+ * They are shown rather than hidden so a shopkeeper can see their category is
+ * coming, and so we learn which ones people reach for.
+ */
+const TYPES: { key: BusinessType; label: string; emoji: string; live: boolean }[] = [
+  { key: "KIRANA", label: "Kirana", emoji: "🏪", live: true },
+  { key: "GENERAL_STORE", label: "General", emoji: "📦", live: false },
+  { key: "SUPERMARKET", label: "Supermarket", emoji: "🛒", live: false },
+  { key: "PHARMACY", label: "Pharmacy", emoji: "💊", live: false },
+  { key: "STATIONERY", label: "Stationery", emoji: "✏️", live: false },
 ];
 
 export function BecomeMerchantScreen() {
   const nav = useNavigation<any>();
   const toast = useToast();
-  const { merchantProfile, refreshMerchantState } = useAuth();
+  const { merchantProfile, refreshMerchantState, clearRoleIntent } = useAuth();
   const { coords, status: locationStatus, request: requestLocation } = useLocation();
 
   const [name, setName] = useState("");
@@ -76,7 +85,10 @@ export function BecomeMerchantScreen() {
       <AppBar
         title="Set up your shop"
         subtitle="Start getting requests from nearby customers"
-        onBack={() => nav.goBack()}
+        // During onboarding this is the only screen in the stack, so goBack()
+        // would silently do nothing — a dead control is worse than none. Fall
+        // back to returning to the role fork.
+        onBack={() => (nav.canGoBack() ? nav.goBack() : clearRoleIntent())}
       />
       <ScrollView contentContainerStyle={[styles.content, contentWidth.column]} showsVerticalScrollIndicator={false}>
         <Card elevated>
@@ -90,23 +102,43 @@ export function BecomeMerchantScreen() {
           <Text variant="caption" color={color.neutral.inkMuted} style={styles.typeLabel}>
             What kind of shop?
           </Text>
+          <Text variant="bodySm" color={color.neutral.inkFaint} style={styles.typeNote}>
+            We're starting with kirana shops and doing them properly. Other kinds
+            are on the way.
+          </Text>
           <View style={styles.types}>
             {TYPES.map((t) => {
               const active = businessType === t.key;
               return (
                 <Pressable
                   key={t.key}
-                  onPress={() => setBusinessType(t.key)}
-                  style={[styles.typeChip, active && styles.typeChipActive]}
+                  onPress={() =>
+                    t.live
+                      ? setBusinessType(t.key)
+                      : toast(`${t.label} shops are coming soon.`, "info")
+                  }
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active, disabled: !t.live }}
+                  accessibilityLabel={
+                    t.live ? t.label : `${t.label} — coming soon, not yet available`
+                  }
+                  style={[
+                    styles.typeChip,
+                    active && styles.typeChipActive,
+                    !t.live && styles.typeChipSoon,
+                  ]}
                 >
-                  <Text style={styles.typeEmoji}>{t.emoji}</Text>
+                  <Text style={[styles.typeEmoji, !t.live && styles.dim]}>{t.emoji}</Text>
                   <Text
                     variant="bodySm"
                     weight="semibold"
-                    color={active ? "#fff" : color.neutral.inkMuted}
+                    color={
+                      active ? "#fff" : t.live ? color.neutral.inkMuted : color.neutral.inkFaint
+                    }
                   >
                     {t.label}
                   </Text>
+                  {!t.live ? <Text style={styles.soonTag}>SOON</Text> : null}
                 </Pressable>
               );
             })}
@@ -205,7 +237,25 @@ const styles = StyleSheet.create({
     backgroundColor: color.brand[500],
     borderColor: color.brand[500],
   },
-  typeEmoji: { fontSize: 15 },
+  typeChipSoon: {
+    borderStyle: "dashed",
+    backgroundColor: "transparent",
+  },
+  dim: { opacity: 0.45 },
+  soonTag: {
+    fontFamily: font.body.bold,
+    fontSize: 9,
+    letterSpacing: 0.6,
+    lineHeight: 12,
+    color: color.neutral.inkFaint,
+    borderWidth: 1,
+    borderColor: color.neutral.border,
+    borderRadius: radius.pill,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+  },
+  typeNote: { marginTop: 2 },
+  typeEmoji: { fontSize: 15, lineHeight: 21 },
   row: { flexDirection: "row", gap: spacing.xs },
   flexHalf: { flex: 1 },
   locationCard: {

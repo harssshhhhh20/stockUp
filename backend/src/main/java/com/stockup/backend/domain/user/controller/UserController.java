@@ -57,15 +57,17 @@ public class UserController {
     ) {
         User user = currentUserService.getCurrentUser();
 
-        // One account per phone number: a shopkeeper calling "the number on the
-        // order" must reach exactly one person. Checked here so the caller gets
-        // a clear conflict rather than a database constraint violation.
-        userRepository.findByPhone(request.phone().trim()).ifPresent(owner -> {
-            if (!owner.getId().equals(user.getId())) {
-                throw new ConflictException(
-                        "That phone number is already linked to another account.");
-            }
-        });
+        // A number identifies one person per side of the marketplace. Two shops
+        // sharing a number, or two shoppers, is the sockpuppet case; a shop and
+        // a shopper sharing one is just somebody who does both. Checked here so
+        // the caller gets a clear conflict rather than a constraint violation.
+        boolean asMerchant = user.hasRole(Role.MERCHANT);
+        if (userRepository.existsByPhoneInRole(
+                request.phone().trim(), user.getId(), asMerchant, Role.MERCHANT)) {
+            throw new ConflictException(asMerchant
+                    ? "Another shop is already registered with that phone number."
+                    : "That phone number is already linked to another account.");
+        }
 
         user.updateProfile(request.firstName(), request.lastName(), request.phone());
         userRepository.save(user);

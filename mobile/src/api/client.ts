@@ -6,6 +6,9 @@ import { ApiResponse } from "./types";
 // set EXPO_PUBLIC_API_URL="http://<lan-ip>:8080" in mobile/.env for that.
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8080";
 
+/** How long any single request may hang before we call it unreachable. */
+const REQUEST_TIMEOUT_MS = 20_000;
+
 const ACCESS_TOKEN_KEY = "stockup.accessToken";
 const REFRESH_TOKEN_KEY = "stockup.refreshToken";
 
@@ -108,11 +111,33 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (token) headers.Authorization = `Bearer ${token}`;
 
-    return fetch(url, {
-      method,
-      headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-    });
+    // Without a deadline this hangs forever when the backend's address is
+    // simply wrong: an unreachable host on a LAN drops packets rather than
+    // refusing them, so fetch never settles and the button spins indefinitely.
+    // A phone on a slow connection still needs room, hence 20s rather than 5.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+    try {
+      return await fetch(url, {
+        method,
+        headers,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
+      });
+    } catch (e) {
+      // "Aborted" tells the user nothing about what to do next; the actual
+      // problem is almost always that the phone can't see this machine.
+      if (e instanceof Error && e.name === "AbortError") {
+        throw new ApiError(
+          `Couldn't reach StockUp at ${API_BASE_URL}. Check that the phone and the server are on the same Wi-Fi.`,
+          0
+        );
+      }
+      throw e;
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   let token = auth ? await getAccessToken() : null;

@@ -31,14 +31,4 @@ public class EmailServiceImpl implements EmailService {
         // needs to know, because there is nothing else to sign in with.
         emailProvider.send(email, subject, body);
     }
-
-    @Override
-    @Async
-    public void sendNotification(String email, String subject, String body) {
-        try {
-            emailProvider.send(email, subject, body);
-        } catch (Exception ex) {
-            log.warn("Failed to send notification email to {}: {}", email, ex.getMessage());
-        }
-    }
 }

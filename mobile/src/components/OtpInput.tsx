@@ -86,6 +86,7 @@ const styles = StyleSheet.create({
   boxText: {
     fontFamily: font.mono.bold,
     fontSize: 22,
+    lineHeight: 28,
     color: color.neutral.ink,
     textAlign: "center",
   },

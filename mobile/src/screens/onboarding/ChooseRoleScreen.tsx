@@ -27,7 +27,7 @@ export function ChooseRoleScreen() {
             How will you{"\n"}use StockUp?
           </Text>
           <Text variant="body" color={color.neutral.inkMuted} style={styles.sub}>
-            You can switch later — plenty of people do both.
+            We'll ask again next time you sign in — plenty of people do both.
           </Text>
         </FadeIn>
 
@@ -93,11 +93,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  icon: { fontSize: 26 },
+  // Emoji sit taller than their font box; without an explicit lineHeight the
+  // variant default (22) crops them on iOS.
+  icon: { fontSize: 26, lineHeight: 34 },
   copy: { flex: 1, gap: 2 },
   chev: {
     fontFamily: font.display.bold,
     fontSize: 26,
+    lineHeight: 32,
     color: color.neutral.inkFaint,
   },
   footnote: { marginTop: spacing.lg, textAlign: "center" },

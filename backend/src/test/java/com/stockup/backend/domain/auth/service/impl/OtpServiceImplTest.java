@@ -63,10 +63,6 @@ class OtpServiceImplTest {
                 lastSentTo = email;
                 lastSentOtp = otp;
             }
-
-            @Override
-            public void sendNotification(String email, String subject, String body) {
-            }
         };
 
         OtpRateLimiter noopLimiter = new OtpRateLimiter() {

@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
@@ -21,15 +20,13 @@ public class ReservationScheduler {
     private final ReservationRepository reservationRepository;
     private final ReservationService reservationService;
 
-    private static final Duration ACTIVATION_DELAY = Duration.ofMinutes(2);
-
     @Scheduled(fixedDelay = 60_000)
     public void activateReservations() {
 
         List<Reservation> reservations =
                 reservationRepository.findByStatusAndCreatedAtBefore(
                         ReservationStatus.PENDING_NOTIFICATION,
-                        Instant.now().minus(ACTIVATION_DELAY)
+                        Instant.now().minus(Reservation.ACTIVATION_DELAY)
                 );
 
         for (Reservation reservation : reservations) {

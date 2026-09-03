@@ -26,9 +26,10 @@ function bharosaCopy(score: number) {
 
 export function ProfileScreen() {
   const nav = useNavigation<any>();
-  const { email, profile, mode, setMode, merchantProfile, store, signOut } = useAuth();
+  const { email, profile, merchantProfile, store, signOut } = useAuth();
   const isMerchant = !!merchantProfile && !!store;
   const [stats, setStats] = useState<MerchantStats | null>(null);
+
 
   useFocusEffect(
     useCallback(() => {
@@ -140,29 +141,7 @@ export function ProfileScreen() {
           </Card>
         ) : null}
 
-        {isMerchant ? (
-          <Card elevated>
-            <Text variant="caption" color={color.neutral.inkMuted}>
-              Viewing StockUp as
-            </Text>
-            <View style={styles.modeRow}>
-              <Button
-                label="Shopper"
-                variant={mode === "customer" ? "primary" : "secondary"}
-                onPress={() => setMode("customer")}
-                fullWidth={false}
-                style={styles.modeBtn}
-              />
-              <Button
-                label="Shopkeeper"
-                variant={mode === "merchant" ? "primary" : "secondary"}
-                onPress={() => setMode("merchant")}
-                fullWidth={false}
-                style={styles.modeBtn}
-              />
-            </View>
-          </Card>
-        ) : (
+        {isMerchant ? null : (
           <Card elevated style={styles.pitch}>
             <Logo size={40} />
             <Text variant="h2">Run a shop?</Text>
@@ -264,6 +243,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontFamily: font.display.bold,
     fontSize: 22,
+    lineHeight: 28,
     color: color.brand[600],
   },
   identityCopy: { flex: 1, gap: 1 },
@@ -275,7 +255,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
   },
   detailRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
-  detailIcon: { fontSize: 14, width: 20 },
+  detailIcon: { fontSize: 14, lineHeight: 20, width: 20 },
   detailLabel: { width: 74 },
   detailValue: { flex: 1, textAlign: "right" },
   statsIntro: { marginTop: -2, marginBottom: spacing.xs },
@@ -293,6 +273,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontFamily: font.mono.bold,
     fontSize: 20,
+    lineHeight: 26,
     color: color.neutral.ink,
   },
   rules: {
@@ -313,12 +294,6 @@ const styles = StyleSheet.create({
   },
   ruleDelta: { fontSize: 12 },
   ruleText: { flex: 1 },
-  modeRow: {
-    flexDirection: "row",
-    gap: spacing.xs,
-    marginTop: 6,
-  },
-  modeBtn: { flex: 1 },
   pitch: { alignItems: "flex-start", gap: 6 },
   pitchBtn: { marginTop: spacing.sm, alignSelf: "stretch" },
 });

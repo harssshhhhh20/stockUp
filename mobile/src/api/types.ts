@@ -144,11 +144,21 @@ export type Reservation = {
   customerId: string;
   merchantId: string;
   storeId: string;
+  storeName: string;
+  storeAddress: string;
+  storeLatitude: number | null;
+  storeLongitude: number | null;
   status: ReservationStatus;
   reservedAt: string;
   activeAt: string | null;
   notificationSentAt: string | null;
   viewedAt: string | null;
+  /** Pickup code. Only ever populated for the customer holding the order. */
+  otp: string | null;
+  /** When the customer's cancel window closes. Null once it has. */
+  cancellableUntil: string | null;
+  /** When a held order is released back to the shop. Null unless active. */
+  expiresAt: string | null;
 };
 
 export type NotificationType =

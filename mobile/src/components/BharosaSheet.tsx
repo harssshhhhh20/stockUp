@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: spacing.xs,
   },
-  reasonIcon: { fontSize: 15, width: 22 },
+  reasonIcon: { fontSize: 15, lineHeight: 22, width: 22 },
   reasonText: { flex: 1 },
   footnote: { marginTop: spacing.xs },
 });

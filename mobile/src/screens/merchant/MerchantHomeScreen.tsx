@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   itemName: { flex: 1 },
   statGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   stat: { minWidth: "40%", flexGrow: 1, gap: 1 },
-  statValue: { fontFamily: font.mono.bold, fontSize: 20, color: color.neutral.ink },
+  statValue: { fontFamily: font.mono.bold, fontSize: 20, lineHeight: 26, color: color.neutral.ink },
   statsNote: { marginTop: spacing.xs },
   loader: { marginTop: spacing.xl },
 });

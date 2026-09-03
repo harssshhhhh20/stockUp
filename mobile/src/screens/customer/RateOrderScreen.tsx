@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     borderColor: color.status.urgent.base,
     backgroundColor: color.status.urgent.soft,
   },
-  chipIcon: { fontSize: 15 },
+  chipIcon: { fontSize: 15, lineHeight: 21 },
   comment: {
     height: 92,
     paddingTop: spacing.sm,

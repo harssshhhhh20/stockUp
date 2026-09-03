@@ -73,6 +73,10 @@ export function BasketDetailScreen() {
     }
   }
 
+  // Once any reply is reserved, every other shop's button goes away with it —
+  // you can only collect this list from one place.
+  const reservedOffer = (offers ?? []).find((o) => o.status === "RESERVED") ?? null;
+
   const s = basket ? basketStatus(basket.status) : null;
   const live = basket?.status === "ACTIVE" || basket?.status === "PENDING_BROADCAST";
 
@@ -134,7 +138,11 @@ export function BasketDetailScreen() {
               />
             ) : (
               offers.map((offer) => {
-                const canReserve = offer.status === "SUBMITTED" && basket.status === "ACTIVE";
+                const canReserve =
+                  offer.status === "SUBMITTED" &&
+                  basket.status === "ACTIVE" &&
+                  !reservedOffer &&
+                  reservingId === null;
                 return (
                   <Card key={offer.merchantOfferId} elevated>
                     {bharosa[offer.storeId]?.tags?.length ? (
@@ -188,6 +196,15 @@ export function BasketDetailScreen() {
                         loading={reservingId === offer.merchantOfferId}
                         style={styles.reserveBtn}
                       />
+                    ) : offer.status === "RESERVED" ? (
+                      <Text variant="bodySm" color={color.status.positive.strong}>
+                        Reserved here. Your pickup code appears under Orders once
+                        the shop is notified.
+                      </Text>
+                    ) : reservedOffer ? (
+                      <Text variant="bodySm" color={color.neutral.inkFaint}>
+                        You reserved with {reservedOffer.storeName} instead.
+                      </Text>
                     ) : null}
                   </Card>
                 );

@@ -1,5 +1,6 @@
 package com.stockup.backend.domain.merchant.service.impl;
 
+import com.stockup.backend.common.exceptions.model.ConflictException;
 import com.stockup.backend.common.security.CurrentUserService;
 import com.stockup.backend.domain.merchant.dto.request.CreateMerchantRequest;
 import com.stockup.backend.domain.merchant.entity.Merchant;
@@ -33,6 +34,17 @@ public class MerchantServiceImpl implements MerchantService {
 
         if (merchantRepository.existsByUser(user)) {
             throw new MerchantAlreadyExistsException();
+        }
+
+        // Becoming a shopkeeper moves this number into the merchant namespace,
+        // where it must be unique. Catching it here beats a constraint
+        // violation halfway through registration.
+        if (user.getPhone() != null && !user.getPhone().isBlank()
+                && userRepository.existsByPhoneInRole(
+                        user.getPhone(), user.getId(), true, Role.MERCHANT)) {
+            throw new ConflictException(
+                    "Another shop is already registered with that phone number. "
+                            + "Use a different number for your shop.");
         }
 
         user.addRole(Role.MERCHANT);

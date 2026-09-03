@@ -87,5 +87,6 @@ const styles = StyleSheet.create({
   scoreLg: {
     fontFamily: font.mono.bold,
     fontSize: 22,
+    lineHeight: 26,
   },
 });

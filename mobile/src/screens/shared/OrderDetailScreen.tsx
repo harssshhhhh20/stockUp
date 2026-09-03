@@ -230,6 +230,7 @@ const styles = StyleSheet.create({
   tlTime: { fontSize: 11.5 },
   ratedStars: {
     fontSize: 20,
+    lineHeight: 26,
     color: color.status.attention.base,
     letterSpacing: 2,
   },

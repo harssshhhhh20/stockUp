@@ -42,6 +42,13 @@ public class Reservation extends AuditableEntity {
     public static final Duration ACTIVE_TTL = Duration.ofHours(1);
 
     /**
+     * How long a reservation waits before it auto-activates — and therefore how
+     * long the customer has to call it off. Shared with
+     * {@link com.stockup.backend.domain.reservation.scheduler.ReservationScheduler}.
+     */
+    public static final Duration ACTIVATION_DELAY = Duration.ofMinutes(2);
+
+    /**
      * Merchants cannot cancel once the reservation is this close to auto-expiring
      * (Bharosa Score rule: no last-minute merchant cancellations).
      */
@@ -215,6 +222,20 @@ public class Reservation extends AuditableEntity {
                     "Cancellation reason is required."
             );
         }
+    }
+
+    /** When the customer's window to cancel closes; null once it already has. */
+    public Instant cancellableUntil() {
+        return status == ReservationStatus.PENDING_NOTIFICATION
+                ? getCreatedAt().plus(ACTIVATION_DELAY)
+                : null;
+    }
+
+    /** When a held order is released back to the shop; null unless active. */
+    public Instant expiresAt() {
+        return status == ReservationStatus.ACTIVE && activeAt != null
+                ? activeAt.plus(ACTIVE_TTL)
+                : null;
     }
 
     public void validateCustomer(User customer) {

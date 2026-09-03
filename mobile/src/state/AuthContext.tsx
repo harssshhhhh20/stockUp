@@ -27,14 +27,16 @@ type AuthContextValue = {
   profile: UserProfile | null;
   email: string | null;
   store: StoreResponse | null;
+  /** Derived from the fork — which side of the app is on screen. */
   mode: Mode;
-  setMode: (m: Mode) => void;
 
   /** What the app should show next. */
   onboardingStep: OnboardingStep;
   /** Which path they picked at the fork, before the server knows about it. */
   roleIntent: Mode | null;
   chooseRole: (role: Mode) => Promise<void>;
+  /** Return to the role fork — used by back from an onboarding step. */
+  clearRoleIntent: () => Promise<void>;
 
   refresh: () => Promise<void>;
   signIn: (email: string, otp: string) => Promise<boolean>;
@@ -57,7 +59,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [booting, setBooting] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [store, setStore] = useState<StoreResponse | null>(null);
-  const [mode, setModeState] = useState<Mode>("customer");
   const [roleIntent, setRoleIntent] = useState<Mode | null>(null);
 
   const load = useCallback(async () => {
@@ -75,8 +76,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setStore(null);
     }
 
-    // Someone who runs a shop lands in shopkeeper mode; they can still switch.
-    if (me.isMerchant && me.hasStore) setModeState("merchant");
     return me;
   }, []);
 
@@ -96,7 +95,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })();
   }, [load]);
 
-  const setMode = useCallback((m: Mode) => setModeState(m), []);
 
   /**
    * The fork straight after sign-in. Remembered on the device because the
@@ -107,7 +105,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const chooseRole = useCallback(async (role: Mode) => {
     await AsyncStorage.setItem(ROLE_INTENT_KEY, role);
     setRoleIntent(role);
-    setModeState(role);
+  }, []);
+
+  const clearRoleIntent = useCallback(async () => {
+    await AsyncStorage.removeItem(ROLE_INTENT_KEY);
+    setRoleIntent(null);
   }, []);
 
   const signIn = useCallback(
@@ -115,12 +117,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await AuthApi.verifyOtp(emailInput, otp);
       await setTokens(res.accessToken, res.refreshToken);
       const me = await load();
-      // A returning shopkeeper shouldn't be asked to pick a side again.
-      if (me.isMerchant) {
+      // Each sign-in starts without an answer, so the fork asks once and the
+      // rest of the app never has to ask again. The exception is a shopkeeper
+      // who hasn't finished opening their shop — they already answered, and
+      // re-asking would strand them halfway through setup.
+      if (me.isMerchant && !me.hasStore) {
         await AsyncStorage.setItem(ROLE_INTENT_KEY, "merchant");
         setRoleIntent("merchant");
       } else {
-        setRoleIntent((await AsyncStorage.getItem(ROLE_INTENT_KEY)) as Mode | null);
+        await AsyncStorage.removeItem(ROLE_INTENT_KEY);
+        setRoleIntent(null);
       }
       return res.newUser;
     },
@@ -133,7 +139,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null);
     setStore(null);
     setRoleIntent(null);
-    setModeState("customer");
   }, []);
 
   useEffect(() => {
@@ -141,7 +146,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(null);
       setStore(null);
       setRoleIntent(null);
-      setModeState("customer");
     });
     return () => setSessionExpiredHandler(null);
   }, []);
@@ -152,16 +156,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    */
   const onboardingStep: OnboardingStep = useMemo(() => {
     if (!profile) return "choose-role";
-    if (!roleIntent && !profile.isMerchant) return "choose-role";
 
-    const wantsMerchant = roleIntent === "merchant" || profile.isMerchant;
+    // Identity before anything else — a shopkeeper needs to reach a person, and
+    // a shopper needs to be reachable when their order is ready. The fork comes
+    // first only because its answer picks the wording on that screen.
+    if (!profile.profileComplete) {
+      return roleIntent || profile.isMerchant ? "complete-profile" : "choose-role";
+    }
 
-    // Everyone tells us who they are — a shopkeeper needs to reach a person,
-    // and a shopper needs to be reachable when their order is ready.
-    if (!profile.profileComplete) return "complete-profile";
-    if (wantsMerchant && !profile.hasStore) return "setup-shop";
+    // The fork is the login question, and the only place we ask it. Someone who
+    // runs a shop and also shops answers it here rather than hunting for a
+    // setting later.
+    if (!roleIntent) return "choose-role";
+
+    if (roleIntent === "merchant" && !profile.hasStore) return "setup-shop";
     return "done";
   }, [profile, roleIntent]);
+
+  // Which tabs you see follows straight from the fork. Picking "shopper" as a
+  // shopkeeper is allowed; claiming the shop side without a shop is not.
+  const mode: Mode = useMemo(
+    () =>
+      roleIntent === "merchant" && profile?.isMerchant && profile?.hasStore
+        ? "merchant"
+        : "customer",
+    [roleIntent, profile]
+  );
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -171,10 +191,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email: profile?.email ?? null,
       store,
       mode,
-      setMode,
       onboardingStep,
       roleIntent,
       chooseRole,
+      clearRoleIntent,
       refresh: async () => {
         await load();
       },
@@ -188,7 +208,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await load();
       },
     }),
-    [booting, profile, store, mode, setMode, onboardingStep, roleIntent, chooseRole, load, signIn, signOut]
+    [booting, profile, store, mode, onboardingStep, roleIntent, chooseRole, clearRoleIntent, load, signIn, signOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

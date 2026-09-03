@@ -18,7 +18,9 @@ public class User extends AuditableEntity {
     @Column(name = "last_name", length = 100)
     private String lastName;
 
-    @Column(unique = true, length = 15)
+    // Uniqueness is per-role and enforced by partial indexes (V20), not by a
+    // global constraint — a shopkeeper and a shopper may share one number.
+    @Column(length = 15)
     private String phone;
 
     @Column(unique = true)

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
 import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import { AppBar } from "../../components/AppBar";
@@ -8,23 +8,23 @@ import { Button } from "../../components/Button";
 import { StatusPill } from "../../components/StatusPill";
 import { TextField } from "../../components/TextField";
 import { useToast } from "../../components/Toast";
-import { NotificationApi, ReservationApi } from "../../api/endpoints";
-import { AppNotification, Reservation } from "../../api/types";
+import { ReservationApi } from "../../api/endpoints";
+import { Reservation } from "../../api/types";
 import { reservationStatus } from "../../theme/statusMap";
 import { color, radius, spacing } from "../../theme/tokens";
 import { contentWidth } from "../../theme/layoutStyles";
 import { ApiError } from "../../api/client";
+import { openDirections } from "../../lib/directions";
+import { useCountdown } from "../../lib/useCountdown";
+import { LiveTimer } from "../../components/LiveTimer";
 
-/**
- * The OTP the customer shows at pickup is delivered as a notification
- * (RESERVATION_ACTIVATED) rather than on the reservation itself, so we surface
- * it here by reading the matching notification — the shopper should never have
- * to go hunting through a feed for the code that collects their order.
- */
-function extractOtp(message: string): string | null {
-  const match = message.match(/\b(\d{6})\b/);
-  return match ? match[1] : null;
-}
+/** Statuses where the shopper has no reason to walk anywhere. */
+const TERMINAL: string[] = [
+  "COMPLETED",
+  "EXPIRED",
+  "MERCHANT_CANCELLED",
+  "CUSTOMER_CANCELLED",
+];
 
 export function ReservationDetailScreen() {
   const nav = useNavigation<any>();
@@ -33,24 +33,13 @@ export function ReservationDetailScreen() {
   const toast = useToast();
 
   const [reservation, setReservation] = useState<Reservation | null>(null);
-  const [otp, setOtp] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [reason, setReason] = useState("");
   const [showCancel, setShowCancel] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const r = await ReservationApi.detail(reservationId);
-      setReservation(r);
-
-      if (r.status === "ACTIVE") {
-        const notifs = await NotificationApi.list(0, 30);
-        const match = notifs.content.find(
-          (n: AppNotification) =>
-            n.type === "RESERVATION_ACTIVATED" && n.referenceId === reservationId
-        );
-        if (match) setOtp(extractOtp(match.message));
-      }
+      setReservation(await ReservationApi.detail(reservationId));
     } catch {
       // handled by empty render
     }
@@ -78,11 +67,29 @@ export function ReservationDetailScreen() {
   }
 
   const s = reservation ? reservationStatus(reservation.status) : null;
+
+  /**
+   * The shop is told about this order two minutes after it's placed. Until then
+   * the customer can call it off; after, the shopkeeper has already started
+   * setting things aside. That window is the countdown beside the button.
+   */
+  const cancelWindow = useCountdown(reservation?.cancellableUntil);
+  const windowClosed = cancelWindow != null && cancelWindow <= 0;
   const canCancel = reservation?.status === "PENDING_NOTIFICATION";
+
+  // The moment the window lapses the server's view of this reservation has
+  // changed too, so pull the new status rather than leaving a stale screen.
+  useEffect(() => {
+    if (canCancel && windowClosed) load();
+  }, [canCancel, windowClosed, load]);
 
   return (
     <View style={styles.flex}>
-      <AppBar title="Your reservation" onBack={() => nav.goBack()} />
+      <AppBar
+        title="Your reservation"
+        subtitle={reservation?.storeName}
+        onBack={() => nav.goBack()}
+      />
       <ScrollView contentContainerStyle={[styles.content, contentWidth.column]} showsVerticalScrollIndicator={false}>
         {!reservation ? (
           <ActivityIndicator style={styles.loader} color={color.brand[500]} />
@@ -92,7 +99,7 @@ export function ReservationDetailScreen() {
               {s ? <StatusPill status={s.status} label={s.label} /> : null}
               <Text variant="body" color={color.neutral.inkMuted} style={styles.explain}>
                 {reservation.status === "PENDING_NOTIFICATION"
-                  ? "We're letting the shop know. This takes a moment."
+                  ? "The shop hasn't been told yet — you can still change your mind."
                   : reservation.status === "ACTIVE"
                   ? "Your order is being held. Show the code below at the shop."
                   : reservation.status === "COMPLETED"
@@ -103,12 +110,50 @@ export function ReservationDetailScreen() {
               </Text>
             </Card>
 
-            {reservation.status === "ACTIVE" && otp ? (
-              <Card elevated style={styles.otpCard}>
-                <Text variant="caption" color={color.brand[600]}>
-                  Show this at the shop
+            {/* Where to go. Placed above the pickup code because you need the
+                shop before you need the code, and a held order the shopper
+                can't find is an order that expires. */}
+            {!TERMINAL.includes(reservation.status) ? (
+              <Card elevated>
+                <Text variant="caption" color={color.neutral.inkMuted}>
+                  Collect from
                 </Text>
-                <Text style={styles.otpValue}>{otp}</Text>
+                <Text variant="h3">{reservation.storeName}</Text>
+                {reservation.storeAddress ? (
+                  <Text variant="bodySm" color={color.neutral.inkMuted}>
+                    {reservation.storeAddress}
+                  </Text>
+                ) : null}
+                <Button
+                  label="Take me to the shop"
+                  variant="secondary"
+                  onPress={async () => {
+                    const opened = await openDirections({
+                      name: reservation.storeName,
+                      address: reservation.storeAddress,
+                      latitude: reservation.storeLatitude,
+                      longitude: reservation.storeLongitude,
+                    });
+                    if (!opened) {
+                      toast("No address on file for this shop yet.", "attention");
+                    }
+                  }}
+                  style={styles.directions}
+                />
+              </Card>
+            ) : null}
+
+            {reservation.status === "ACTIVE" && reservation.otp ? (
+              <Card elevated style={styles.otpCard}>
+                <View style={styles.rowBetween}>
+                  <Text variant="caption" color={color.brand[600]}>
+                    Show this at the shop
+                  </Text>
+                  {reservation.expiresAt ? (
+                    <LiveTimer expiresAt={reservation.expiresAt} label="held" />
+                  ) : null}
+                </View>
+                <Text style={styles.otpValue}>{reservation.otp}</Text>
                 <Text variant="bodySm" color={color.neutral.inkMuted}>
                   The shopkeeper enters this code to complete your pickup.
                 </Text>
@@ -116,18 +161,27 @@ export function ReservationDetailScreen() {
             ) : null}
 
             {canCancel && !showCancel ? (
-              <Button
-                label="Cancel this reservation"
-                variant="secondary"
-                onPress={() => setShowCancel(true)}
-              />
+              <View style={styles.cancelRow}>
+                <Button
+                  label={windowClosed ? "Too late to cancel" : "Cancel this reservation"}
+                  variant="secondary"
+                  onPress={() => setShowCancel(true)}
+                  disabled={windowClosed}
+                  fullWidth={false}
+                  style={styles.cancelBtn}
+                />
+                {reservation.cancellableUntil && !windowClosed ? (
+                  <LiveTimer expiresAt={reservation.cancellableUntil} label="cancel" />
+                ) : null}
+              </View>
             ) : null}
 
             {canCancel && showCancel ? (
               <Card elevated>
                 <Text variant="h3">Why are you cancelling?</Text>
                 <Text variant="bodySm" color={color.neutral.inkMuted}>
-                  The shop set items aside for you, so a quick reason helps them.
+                  The shop hasn't been told about this order yet, so nobody is left
+                  waiting. The reason is just for your own records.
                 </Text>
                 <TextField
                   placeholder="e.g. Found it closer to home"
@@ -182,6 +236,20 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     textAlignVertical: "top",
   },
+  rowBetween: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.xs,
+  },
+  directions: { marginTop: spacing.sm },
+  cancelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+  },
+  cancelBtn: { flexShrink: 1 },
   loader: {
     marginTop: spacing.xxl,
   },

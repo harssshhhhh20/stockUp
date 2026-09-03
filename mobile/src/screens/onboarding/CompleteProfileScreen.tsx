@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "../../components/Text";
 import { Card } from "../../components/Card";
@@ -22,7 +22,7 @@ import { contentWidth } from "../../theme/layoutStyles";
  */
 export function CompleteProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { profile, refresh, roleIntent } = useAuth();
+  const { profile, refresh, roleIntent, clearRoleIntent } = useAuth();
   const { coords, status: locationStatus, request: requestLocation } = useLocation(false);
 
   const [firstName, setFirstName] = useState(profile?.firstName ?? "");
@@ -58,6 +58,21 @@ export function CompleteProfileScreen() {
         showsVerticalScrollIndicator={false}
       >
         <FadeIn>
+          {/* The only route back to the role fork: this screen is the whole
+              stack during onboarding, so there is nothing for goBack() to pop. */}
+          <Pressable
+            onPress={clearRoleIntent}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Back to choosing how you'll use StockUp"
+            style={styles.backRow}
+          >
+            <Text style={styles.backChev}>‹</Text>
+            <Text variant="bodySm" weight="semibold" color={color.neutral.inkMuted}>
+              {roleIntent === "merchant" ? "I run a shop" : "I'm shopping"}
+            </Text>
+          </Pressable>
+
           <Text variant="h1">
             {roleIntent === "merchant" ? "Let's set you up" : "Nearly there"}
           </Text>
@@ -189,6 +204,14 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxxl,
     gap: spacing.sm,
   },
+  backRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    marginBottom: spacing.sm,
+    minHeight: 30,
+  },
+  backChev: { fontSize: 22, lineHeight: 28, color: color.neutral.inkMuted },
   sub: { marginBottom: spacing.sm },
   stepHead: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
   stepTitle: { flex: 1 },
