@@ -100,8 +100,13 @@ export const MerchantOfferApi = {
 export const ReservationApi = {
   reserve: (merchantOfferId: string) =>
     api.post<Reservation>(`/api/v1/reservations?merchantOfferId=${merchantOfferId}`),
-  list: (status: ReservationStatus, page = 0, size = 20) =>
-    api.get<Page<Reservation>>("/api/v1/reservations", { status, page, size }),
+  /** Omit `status` for every reservation regardless of state — the All filter. */
+  list: (status: ReservationStatus | null, page = 0, size = 20) =>
+    api.get<Page<Reservation>>("/api/v1/reservations", {
+      status: status ?? undefined,
+      page,
+      size,
+    }),
   detail: (id: string) => api.get<Reservation>(`/api/v1/reservations/${id}`),
   cancel: (id: string, reason: string) =>
     api.post<Reservation>(`/api/v1/reservations/${id}/cancel`, { reason }),

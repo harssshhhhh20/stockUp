@@ -34,6 +34,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -250,35 +251,29 @@ public class ReservationServiceImpl implements ReservationService {
         Optional<Merchant> merchant =
                 merchantRepository.findByUser(currentUser);
 
-        ReservationStatus effectiveStatus =
-                status == null ? ReservationStatus.ACTIVE : status;
-
         if (merchant.isPresent()) {
-            Page<Reservation> reservations =
-                    reservationRepository.findByMerchantAndStatus(
-                            merchant.get(),
-                            effectiveStatus,
-                            pageable
-                    );
+            Page<Reservation> reservations = status == null
+                    ? reservationRepository.findByMerchant(merchant.get(), pageable)
+                    : reservationRepository.findByMerchantAndStatus(
+                            merchant.get(), status, pageable);
 
             return reservations.map(reservationMapper::toResponse);
         }
-        Page<Reservation> reservations =
-                reservationRepository.findByCustomerAndStatus(
-                        currentUser,
-                        effectiveStatus,
-                        pageable
-                );
+
+        Page<Reservation> reservations = status == null
+                ? reservationRepository.findByCustomer(currentUser, pageable)
+                : reservationRepository.findByCustomerAndStatus(
+                        currentUser, status, pageable);
 
         return reservations.map(reservationMapper::toResponse);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public ReservationResponse getReservation(UUID reservationId){
         Reservation reservation = reservationRepository.findById(reservationId).orElseThrow(
                 () -> new ReservationNotFoundException("No reservation under this id")
         );
+
         User currUser = currentUserService.getCurrentUser();
         Optional<Merchant> merchant = merchantRepository.findByUser(currUser);
 
@@ -288,6 +283,17 @@ public class ReservationServiceImpl implements ReservationService {
         } else {
             reservation.validateMerchant(merchant.get());
         }
+
+        // Activate on read once the grace window has passed, rather than making
+        // the customer wait for the next scheduler tick. The scheduler polls
+        // once a minute, so the pickup code could arrive up to a minute after
+        // the countdown on screen had already hit zero — the app looked broken
+        // at exactly the moment it mattered most. The scheduler stays as the
+        // backstop for reservations nobody happens to be looking at.
+        //
+        // Deliberately after the access check: an unauthorised read must not be
+        // able to move someone else's reservation along.
+        activateIfDue(reservation);
 
         // Only the person collecting the order gets to see the code for it.
         return reservationMapper.toResponse(reservation, viewingAsCustomer);
@@ -371,6 +377,34 @@ public class ReservationServiceImpl implements ReservationService {
         } catch (RuntimeException ex) {
             log.warn(
                     "Could not reopen basket for reservation {}: {}",
+                    reservation.getId(),
+                    ex.getMessage()
+            );
+        }
+    }
+
+    /**
+     * Brings a reservation live if its grace window has elapsed.
+     *
+     * Safe to call on any reservation and from any read: a status that is no
+     * longer pending, or a window that has not yet passed, is simply left
+     * alone. Losing a race with the scheduler is harmless — {@code activate}
+     * rejects a second attempt, and the read continues either way.
+     */
+    private void activateIfDue(Reservation reservation) {
+        if (reservation.getStatus() != ReservationStatus.PENDING_NOTIFICATION) {
+            return;
+        }
+        Instant dueAt = reservation.getCreatedAt().plus(Reservation.ACTIVATION_DELAY);
+        if (Instant.now().isBefore(dueAt)) {
+            return;
+        }
+
+        try {
+            activateReservation(reservation.getId());
+        } catch (RuntimeException ex) {
+            log.warn(
+                    "On-read activation of reservation {} failed: {}",
                     reservation.getId(),
                     ex.getMessage()
             );

@@ -34,6 +34,17 @@ export function BasketsScreen() {
     }, [load])
   );
 
+  /**
+   * A reserved list has stopped being a question and become an order, so it
+   * moves to the Orders tab rather than sitting in both. Showing it here too
+   * meant the same shopping trip appeared twice, under two different status
+   * vocabularies — which read as a bug because it was one.
+   *
+   * A reservation that falls through reopens the list, and it reappears here.
+   */
+  const open = (baskets ?? []).filter((b) => b.status !== "RESERVED");
+  const reservedCount = (baskets ?? []).length - open.length;
+
   const onRefresh = async () => {
     setRefreshing(true);
     await load();
@@ -52,14 +63,18 @@ export function BasketsScreen() {
 
         {baskets === null ? (
           <ActivityIndicator style={styles.loader} color={color.brand[500]} />
-        ) : baskets.length === 0 ? (
+        ) : open.length === 0 ? (
           <EmptyState
             emoji="🧺"
-            title="No lists yet"
-            body="Make a list of what you need. Nearby shops will tell you what they've got in stock."
+            title={reservedCount > 0 ? "Nothing open right now" : "No lists yet"}
+            body={
+              reservedCount > 0
+                ? `Your ${reservedCount === 1 ? "reserved list is" : `${reservedCount} reserved lists are`} waiting under Orders. Start a new list any time.`
+                : "Make a list of what you need. Nearby shops will tell you what they've got in stock."
+            }
           />
         ) : (
-          baskets.map((b) => {
+          open.map((b) => {
             const s = basketStatus(b.status);
             const live = b.status === "ACTIVE" || b.status === "PENDING_BROADCAST";
             return (
@@ -88,6 +103,14 @@ export function BasketsScreen() {
             );
           })
         )}
+
+        {/* Say where the missing ones went, rather than silently dropping them. */}
+        {open.length > 0 && reservedCount > 0 ? (
+          <Text variant="bodySm" color={color.neutral.inkFaint} style={styles.footnote}>
+            {reservedCount === 1 ? "1 reserved list is" : `${reservedCount} reserved lists are`}{" "}
+            under Orders.
+          </Text>
+        ) : null}
       </ScrollView>
     </View>
   );
@@ -106,6 +129,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
+  footnote: { textAlign: "center", marginTop: spacing.xs },
   loader: {
     marginTop: spacing.xxl,
   },

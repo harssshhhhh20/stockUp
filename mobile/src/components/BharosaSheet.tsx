@@ -106,7 +106,7 @@ export function BharosaSheet({ visible, onClose, data }: Props) {
 
 const styles = StyleSheet.create({
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(20,25,20,0.35)",
   },
   sheet: {

@@ -58,7 +58,7 @@ export function NearbyMap({ coords, stores, height = 190 }: MapProps) {
 }
 
 const styles = StyleSheet.create({
-  grid: { ...StyleSheet.absoluteFillObject },
+  grid: { ...StyleSheet.absoluteFill },
   gridLine: {
     position: "absolute",
     left: 0,

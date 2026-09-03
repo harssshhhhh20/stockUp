@@ -36,6 +36,11 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
             Pageable pageable
     );
 
+    /** Every reservation on this side of the marketplace — the "All" filter. */
+    Page<Reservation> findByMerchant(Merchant merchant, Pageable pageable);
+
+    Page<Reservation> findByCustomer(User customer, Pageable pageable);
+
     Page<Reservation> findAllByStatus(
             ReservationStatus status,
             Pageable pageable

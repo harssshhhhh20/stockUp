@@ -28,7 +28,9 @@ public class ReservationController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<ReservationResponse>>> getReservations(
-            @RequestParam(defaultValue = "ACTIVE")
+            // Omit the parameter entirely for every reservation, whatever its
+            // status — that is what the app's "All" filter sends.
+            @RequestParam(required = false)
             ReservationStatus status,
             @PageableDefault(size = 20) Pageable pageable
     ) {

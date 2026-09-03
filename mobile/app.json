@@ -8,11 +8,6 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "backgroundColor": "#F5F3EA",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#F5F3EA"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.stockup.app",
@@ -45,10 +40,21 @@
           "locationWhenInUsePermission": "StockUp uses your location to find shops near you and to pin your shop so nearby customers can reach it."
         }
       ],
-      "expo-notifications"
-    ],
-    "notification": {
-      "iconColor": "#0E7C74"
-    }
+      [
+        "expo-notifications",
+        {
+          "color": "#0E7C74"
+        }
+      ],
+      "expo-status-bar",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#F5F3EA"
+        }
+      ]
+    ]
   }
 }

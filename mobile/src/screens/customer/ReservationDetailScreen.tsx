@@ -77,10 +77,31 @@ export function ReservationDetailScreen() {
   const windowClosed = cancelWindow != null && cancelWindow <= 0;
   const canCancel = reservation?.status === "PENDING_NOTIFICATION";
 
-  // The moment the window lapses the server's view of this reservation has
-  // changed too, so pull the new status rather than leaving a stale screen.
+  /**
+   * The server brings the reservation live on read once the window has passed,
+   * so one refetch is normally enough. We retry a few times anyway: the phone's
+   * clock and the server's rarely agree to the second, and firing a moment
+   * early would otherwise leave the screen showing "confirming" with no code
+   * and nothing left to trigger another look.
+   */
   useEffect(() => {
-    if (canCancel && windowClosed) load();
+    if (!canCancel || !windowClosed) return;
+
+    let attempts = 0;
+    let cancelled = false;
+
+    const tick = async () => {
+      if (cancelled) return;
+      attempts += 1;
+      await load();
+      if (!cancelled && attempts < 5) timer = setTimeout(tick, 2000);
+    };
+
+    let timer = setTimeout(tick, 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [canCancel, windowClosed, load]);
 
   return (
@@ -145,35 +166,46 @@ export function ReservationDetailScreen() {
 
             {reservation.status === "ACTIVE" && reservation.otp ? (
               <Card elevated style={styles.otpCard}>
-                <View style={styles.rowBetween}>
-                  <Text variant="caption" color={color.brand[600]}>
-                    Show this at the shop
-                  </Text>
-                  {reservation.expiresAt ? (
-                    <LiveTimer expiresAt={reservation.expiresAt} label="held" />
-                  ) : null}
-                </View>
+                <Text variant="caption" color={color.brand[600]}>
+                  Show this at the shop
+                </Text>
                 <Text style={styles.otpValue}>{reservation.otp}</Text>
-                <Text variant="bodySm" color={color.neutral.inkMuted}>
+                {reservation.expiresAt ? (
+                  <LiveTimer expiresAt={reservation.expiresAt} label="held" />
+                ) : null}
+                <Text
+                  variant="bodySm"
+                  color={color.neutral.inkMuted}
+                  style={styles.otpHint}
+                >
                   The shopkeeper enters this code to complete your pickup.
                 </Text>
               </Card>
             ) : null}
 
             {canCancel && !showCancel ? (
-              <View style={styles.cancelRow}>
+              <Card elevated>
+                <View style={styles.rowBetween}>
+                  <Text variant="caption" color={color.neutral.inkMuted}>
+                    Changed your mind?
+                  </Text>
+                  {reservation.cancellableUntil && !windowClosed ? (
+                    <LiveTimer expiresAt={reservation.cancellableUntil} label="until" />
+                  ) : null}
+                </View>
+                <Text variant="bodySm" color={color.neutral.inkMuted}>
+                  {windowClosed
+                    ? "The shop has been told about this order, so it can't be called off here. Ask them at the counter."
+                    : "Call it off now and the shop never hears about it."}
+                </Text>
                 <Button
-                  label={windowClosed ? "Too late to cancel" : "Cancel this reservation"}
+                  label="Cancel this reservation"
                   variant="secondary"
                   onPress={() => setShowCancel(true)}
                   disabled={windowClosed}
-                  fullWidth={false}
                   style={styles.cancelBtn}
                 />
-                {reservation.cancellableUntil && !windowClosed ? (
-                  <LiveTimer expiresAt={reservation.cancellableUntil} label="cancel" />
-                ) : null}
-              </View>
+              </Card>
             ) : null}
 
             {canCancel && showCancel ? (
@@ -224,9 +256,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: spacing.xl,
   },
+  otpHint: { textAlign: "center", marginTop: spacing.xs },
   otpValue: {
     fontFamily: "JetBrainsMono_700Bold",
     fontSize: 40,
+    lineHeight: 50,
     letterSpacing: 6,
     color: color.brand[700],
     marginVertical: spacing.xs,
@@ -243,13 +277,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   directions: { marginTop: spacing.sm },
-  cancelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  cancelBtn: { flexShrink: 1 },
+  cancelBtn: { marginTop: spacing.sm },
   loader: {
     marginTop: spacing.xxl,
   },

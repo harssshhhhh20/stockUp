@@ -61,12 +61,17 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: "row",
-    alignItems: "center",
+    // Top-aligned, not centred: with a subtitle present, centring pushed the
+    // chevron halfway down a two-line block and left it floating below the
+    // title it belongs to.
+    alignItems: "flex-start",
     gap: spacing.sm,
   },
   back: {
     width: 44,
-    height: 44,
+    // Matches the h1 line box so the chevron sits on the title's line. The
+    // 44pt touch target is preserved by hitSlop rather than by height.
+    height: 30,
     alignItems: "center",
     justifyContent: "center",
     marginLeft: -spacing.sm,

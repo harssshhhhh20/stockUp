@@ -25,7 +25,7 @@ export function NearbyMap({ coords, stores, height = 190 }: MapProps) {
   return (
     <View style={[mapStyles.wrap, { height }]}>
       <MapView
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         initialRegion={{
           latitude: coords.latitude,
           longitude: coords.longitude,

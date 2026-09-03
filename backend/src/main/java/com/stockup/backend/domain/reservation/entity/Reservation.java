@@ -189,6 +189,7 @@ public class Reservation extends AuditableEntity {
 
         cancellationReason = reason;
         status = ReservationStatus.MERCHANT_CANCELLED;
+        this.otp = null;
     }
 
     public void complete(String otp) {
@@ -214,6 +215,7 @@ public class Reservation extends AuditableEntity {
         requireStatus(ReservationStatus.ACTIVE);
 
         status = ReservationStatus.EXPIRED;
+        this.otp = null;
     }
 
     private void validateCancellationReason(String reason) {

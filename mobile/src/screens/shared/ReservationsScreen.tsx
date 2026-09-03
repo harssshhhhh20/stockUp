@@ -15,7 +15,11 @@ import { contentWidth } from "../../theme/layoutStyles";
 
 const PAGE_SIZE = 20;
 
-const FILTERS: { key: ReservationStatus; label: string }[] = [
+/** `null` is "All" — no status parameter is sent at all. */
+type Filter = ReservationStatus | null;
+
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: null, label: "All" },
   { key: "ACTIVE", label: "Active" },
   { key: "PENDING_NOTIFICATION", label: "Confirming" },
   { key: "COMPLETED", label: "Done" },
@@ -25,14 +29,14 @@ const FILTERS: { key: ReservationStatus; label: string }[] = [
 export function ReservationsScreen() {
   const nav = useNavigation<any>();
   const { mode } = useAuth();
-  const [filter, setFilter] = useState<ReservationStatus>("ACTIVE");
+  const [filter, setFilter] = useState<Filter>("ACTIVE");
   const [rows, setRows] = useState<Reservation[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const load = useCallback(async (status: ReservationStatus) => {
+  const load = useCallback(async (status: Filter) => {
     try {
       const result = await ReservationApi.list(status, 0, PAGE_SIZE);
       setRows(result.content);
@@ -85,7 +89,7 @@ export function ReservationsScreen() {
           const active = filter === f.key;
           return (
             <Pressable
-              key={f.key}
+              key={f.key ?? "all"}
               onPress={() => {
                 setFilter(f.key);
                 setRows(null);
