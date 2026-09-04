@@ -29,6 +29,9 @@ export const AuthApi = {
   verifyOtp: (email: string, otp: string) =>
     api.post<AuthResponse>("/api/v1/auth/verify-otp", { email, otp }, false),
   me: () => api.get<UserProfile>("/api/v1/users/me"),
+  /** The one-time fork. Rejected by the server if already answered. */
+  chooseRole: (role: "CUSTOMER" | "MERCHANT") =>
+    api.post<UserProfile>("/api/v1/users/me/role", { role }),
   updateProfile: (payload: { firstName: string; lastName?: string | null; phone: string }) =>
     api.patch<UserProfile>("/api/v1/users/me", payload),
 };

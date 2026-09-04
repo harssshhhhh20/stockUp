@@ -36,9 +36,15 @@ public class MerchantServiceImpl implements MerchantService {
             throw new MerchantAlreadyExistsException();
         }
 
-        // Becoming a shopkeeper moves this number into the merchant namespace,
-        // where it must be unique. Catching it here beats a constraint
-        // violation halfway through registration.
+        // The side of the marketplace is settled at sign-up, not here. Opening a
+        // shop from a shopper account would silently make one login both, which
+        // is exactly what the one-time fork exists to prevent.
+        if (!user.hasRole(Role.MERCHANT)) {
+            throw new ConflictException(
+                    "This account is registered for shopping. "
+                            + "Shops are opened from a separate shopkeeper account.");
+        }
+
         if (user.getPhone() != null && !user.getPhone().isBlank()
                 && userRepository.existsByPhoneInRole(
                         user.getPhone(), user.getId(), true, Role.MERCHANT)) {
@@ -46,10 +52,6 @@ public class MerchantServiceImpl implements MerchantService {
                     "Another shop is already registered with that phone number. "
                             + "Use a different number for your shop.");
         }
-
-        user.addRole(Role.MERCHANT);
-        
-        userRepository.save(user);
 
         Merchant merchant = new Merchant(user);
 

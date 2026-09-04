@@ -3,6 +3,7 @@ package com.stockup.backend.domain.user.entity;
 import com.stockup.backend.common.persistence.entity.AuditableEntity;
 import com.stockup.backend.domain.user.entity.enums.AccountStatus;
 import com.stockup.backend.domain.user.entity.enums.Role;
+import com.stockup.backend.domain.user.exception.RoleAlreadyChosenException;
 import jakarta.persistence.*;
 
 import java.util.HashSet;
@@ -46,7 +47,7 @@ public class User extends AuditableEntity {
     public User(String email) {
         this.email = email;
         this.accountStatus = AccountStatus.PENDING_VERIFICATION;
-        this.roles.add(Role.CUSTOMER);
+        // Deliberately no base role — see chooseRole.
     }
 
     public String getFirstName() {
@@ -94,6 +95,48 @@ public class User extends AuditableEntity {
         this.accountStatus = AccountStatus.SUSPENDED;
     }
 
+    /**
+     * Picks the one side of the marketplace this account lives on, permanently.
+     *
+     * Shopping and shopkeeping are separate accounts, not two hats on one
+     * login: a shopkeeper's Bharosa is the record of one shop's conduct, and
+     * letting a person move between sides — or occupy both — would make that
+     * record ambiguous about whose behaviour it describes.
+     *
+     * Answered once, straight after the first sign-in, and never revisited.
+     * Someone who genuinely does both registers a second account; the
+     * phone-number rules allow one number across the two sides precisely
+     * because that is the same human.
+     */
+    public void chooseRole(Role role) {
+        if (role != Role.CUSTOMER && role != Role.MERCHANT) {
+            throw new IllegalArgumentException(
+                    "An account is either a customer or a merchant."
+            );
+        }
+        if (hasChosenRole()) {
+            throw new RoleAlreadyChosenException(
+                    "This account is already registered as a "
+                            + getBaseRole().name().toLowerCase()
+                            + ". That can't be changed."
+            );
+        }
+        this.roles.add(role);
+    }
+
+    /** True once the account has been placed on one side of the marketplace. */
+    public boolean hasChosenRole() {
+        return getBaseRole() != null;
+    }
+
+    /** CUSTOMER or MERCHANT — never both, null until chosen. ADMIN is separate. */
+    public Role getBaseRole() {
+        if (roles.contains(Role.MERCHANT)) return Role.MERCHANT;
+        if (roles.contains(Role.CUSTOMER)) return Role.CUSTOMER;
+        return null;
+    }
+
+    /** Reserved for privileges layered on top of a base role, such as ADMIN. */
     public void addRole(Role role) {
         this.roles.add(role);
     }

@@ -35,7 +35,7 @@ const TYPES: { key: BusinessType; label: string; emoji: string; live: boolean }[
 export function BecomeMerchantScreen() {
   const nav = useNavigation<any>();
   const toast = useToast();
-  const { merchantProfile, refreshMerchantState, clearRoleIntent } = useAuth();
+  const { merchantProfile, refreshMerchantState } = useAuth();
   const { coords, status: locationStatus, request: requestLocation } = useLocation();
 
   const [name, setName] = useState("");
@@ -85,10 +85,6 @@ export function BecomeMerchantScreen() {
       <AppBar
         title="Set up your shop"
         subtitle="Start getting requests from nearby customers"
-        // During onboarding this is the only screen in the stack, so goBack()
-        // would silently do nothing — a dead control is worse than none. Fall
-        // back to returning to the role fork.
-        onBack={() => (nav.canGoBack() ? nav.goBack() : clearRoleIntent())}
       />
       <ScrollView contentContainerStyle={[styles.content, contentWidth.column]} showsVerticalScrollIndicator={false}>
         <Card elevated>

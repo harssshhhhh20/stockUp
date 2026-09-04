@@ -67,7 +67,7 @@ export function ProfileScreen() {
             <DetailRow
               icon="🪪"
               label="Account"
-              value={profile?.isMerchant ? "Shopper + shopkeeper" : "Shopper"}
+              value={profile?.role === "MERCHANT" ? "Shopkeeper" : "Shopper"}
             />
             {profile?.hasStore ? (
               <DetailRow icon="🏪" label="Shop" value={profile.storeName ?? "—"} />
@@ -146,13 +146,10 @@ export function ProfileScreen() {
             <Logo size={40} />
             <Text variant="h2">Run a shop?</Text>
             <Text variant="body" color={color.neutral.inkMuted}>
-              Get requests from customers nearby and tell them what you have in stock.
+              Shops run on their own account, so shop reviews always belong to
+              one shop. Sign up again with a different email to open yours — you
+              can reuse this phone number.
             </Text>
-            <Button
-              label="Set up my shop"
-              onPress={() => nav.navigate("BecomeMerchant")}
-              style={styles.pitchBtn}
-            />
           </Card>
         )}
 

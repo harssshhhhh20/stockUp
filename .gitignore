@@ -3,6 +3,7 @@
 
 # OS
 .DS_Store
+.claude
 
 # Java / Maven
 target/

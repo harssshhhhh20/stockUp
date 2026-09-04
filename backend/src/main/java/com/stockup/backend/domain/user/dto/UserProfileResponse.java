@@ -17,6 +17,8 @@ public record UserProfileResponse(
         String lastName,
         String phone,
         Set<String> roles,
+        /** CUSTOMER or MERCHANT; null until the one-time fork is answered. */
+        String role,
         boolean profileComplete,
         boolean isMerchant,
         boolean hasStore,

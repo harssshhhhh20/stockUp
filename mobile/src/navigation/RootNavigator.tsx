@@ -123,7 +123,6 @@ export function RootNavigator() {
               name="MerchantReservationDetail"
               component={MerchantReservationDetailScreen}
             />
-            <Stack.Screen name="BecomeMerchant" component={BecomeMerchantScreen} />
           </>
         )}
       </Stack.Navigator>

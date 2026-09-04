@@ -289,6 +289,8 @@ export type UserProfile = {
   lastName: string | null;
   phone: string | null;
   roles: string[];
+  /** CUSTOMER or MERCHANT; null until the one-time fork is answered. */
+  role: "CUSTOMER" | "MERCHANT" | null;
   profileComplete: boolean;
   isMerchant: boolean;
   hasStore: boolean;

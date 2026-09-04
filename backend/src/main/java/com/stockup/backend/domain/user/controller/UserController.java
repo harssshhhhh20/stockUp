@@ -10,6 +10,8 @@ import com.stockup.backend.domain.store.entity.Store;
 import com.stockup.backend.domain.store.repository.StoreRepository;
 import com.stockup.backend.domain.user.dto.UpdateProfileRequest;
 import com.stockup.backend.domain.user.dto.UserProfileResponse;
+import com.stockup.backend.domain.user.dto.ChooseRoleRequest;
+import org.springframework.web.bind.annotation.PostMapping;
 import com.stockup.backend.domain.user.entity.User;
 import com.stockup.backend.domain.user.entity.enums.Role;
 import com.stockup.backend.common.exceptions.model.ConflictException;
@@ -50,6 +52,23 @@ public class UserController {
         );
     }
 
+    /**
+     * Records which side of the marketplace this account lives on. Called once,
+     * straight after the first sign-in; a second call is rejected rather than
+     * silently ignored, so a client bug can't quietly move someone.
+     */
+    @PostMapping("/me/role")
+    @Transactional
+    public ResponseEntity<ApiResponse<UserProfileResponse>> chooseRole(
+            @Valid @RequestBody ChooseRoleRequest request
+    ) {
+        User user = currentUserService.getCurrentUser();
+        user.chooseRole(request.role());
+        userRepository.save(user);
+
+        return ApiResponseFactory.success(ResponseMessage.UPDATED, profileOf(user));
+    }
+
     @PatchMapping("/me")
     @Transactional
     public ResponseEntity<ApiResponse<UserProfileResponse>> updateMe(
@@ -86,8 +105,12 @@ public class UserController {
                 user.getLastName(),
                 user.getPhone(),
                 user.getRoles().stream().map(Role::name).collect(Collectors.toSet()),
+                user.getBaseRole() == null ? null : user.getBaseRole().name(),
                 user.isProfileComplete(),
-                merchant.isPresent(),
+                // isMerchant follows the chosen role, not the presence of a
+                // merchant record: a shopkeeper is one from the moment they
+                // pick that side, before any shop exists.
+                user.hasRole(Role.MERCHANT),
                 store.isPresent(),
                 merchant.map(Merchant::getId).orElse(null),
                 merchant.map(Merchant::getBharosaScore).orElse(null),

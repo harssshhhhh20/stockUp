@@ -5,6 +5,8 @@ import { Text } from "../../components/Text";
 import { Card } from "../../components/Card";
 import { FadeIn, PressableScale } from "../../components/Motion";
 import { useAuth } from "../../state/AuthContext";
+import { useToast } from "../../components/Toast";
+import { ApiError } from "../../api/client";
 import { color, font, radius, spacing } from "../../theme/tokens";
 import { contentWidth } from "../../theme/layoutStyles";
 
@@ -15,8 +17,24 @@ import { contentWidth } from "../../theme/layoutStyles";
  * Copy is written from each side's own words: a shopper thinks "find things",
  * a shopkeeper thinks "sell what I have".
  */
+type Side = "customer" | "merchant";
+
 export function ChooseRoleScreen() {
   const { chooseRole } = useAuth();
+  const [busy, setBusy] = React.useState<Side | null>(null);
+  const toast = useToast();
+
+  // The choice is permanent, so a failed call must not look like it worked.
+  async function pick(role: Side) {
+    if (busy) return;
+    setBusy(role);
+    try {
+      await chooseRole(role);
+    } catch (e) {
+      toast(e instanceof ApiError ? e.message : "Couldn't save that. Try again.", "urgent");
+      setBusy(null);
+    }
+  }
   const insets = useSafeAreaInsets();
 
   return (
@@ -27,12 +45,13 @@ export function ChooseRoleScreen() {
             How will you{"\n"}use StockUp?
           </Text>
           <Text variant="body" color={color.neutral.inkMuted} style={styles.sub}>
-            We'll ask again next time you sign in — plenty of people do both.
+            This one sticks — an account is either a shopper or a shop, so pick
+            the one you're here for.
           </Text>
         </FadeIn>
 
         <FadeIn index={1}>
-          <PressableScale onPress={() => chooseRole("customer")} accessibilityLabel="I'm shopping">
+          <PressableScale onPress={() => pick("customer")} accessibilityLabel="I'm shopping">
             <Card elevated style={styles.card}>
               <View style={[styles.iconWrap, { backgroundColor: color.brand[50] }]}>
                 <Text style={styles.icon}>🧺</Text>
@@ -49,7 +68,7 @@ export function ChooseRoleScreen() {
         </FadeIn>
 
         <FadeIn index={2}>
-          <PressableScale onPress={() => chooseRole("merchant")} accessibilityLabel="I run a shop">
+          <PressableScale onPress={() => pick("merchant")} accessibilityLabel="I run a shop">
             <Card elevated style={styles.card}>
               <View style={[styles.iconWrap, { backgroundColor: color.marigold[100] }]}>
                 <Text style={styles.icon}>🏪</Text>

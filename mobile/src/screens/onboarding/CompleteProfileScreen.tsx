@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "../../components/Text";
 import { Card } from "../../components/Card";
@@ -22,7 +22,7 @@ import { contentWidth } from "../../theme/layoutStyles";
  */
 export function CompleteProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { profile, refresh, roleIntent, clearRoleIntent } = useAuth();
+  const { profile, refresh } = useAuth();
   const { coords, status: locationStatus, request: requestLocation } = useLocation(false);
 
   const [firstName, setFirstName] = useState(profile?.firstName ?? "");
@@ -58,23 +58,9 @@ export function CompleteProfileScreen() {
         showsVerticalScrollIndicator={false}
       >
         <FadeIn>
-          {/* The only route back to the role fork: this screen is the whole
-              stack during onboarding, so there is nothing for goBack() to pop. */}
-          <Pressable
-            onPress={clearRoleIntent}
-            hitSlop={10}
-            accessibilityRole="button"
-            accessibilityLabel="Back to choosing how you'll use StockUp"
-            style={styles.backRow}
-          >
-            <Text style={styles.backChev}>‹</Text>
-            <Text variant="bodySm" weight="semibold" color={color.neutral.inkMuted}>
-              {roleIntent === "merchant" ? "I run a shop" : "I'm shopping"}
-            </Text>
-          </Pressable>
 
           <Text variant="h1">
-            {roleIntent === "merchant" ? "Let's set you up" : "Nearly there"}
+            {profile?.role === "MERCHANT" ? "Let's set you up" : "Nearly there"}
           </Text>
           <Text variant="body" color={color.neutral.inkMuted} style={styles.sub}>
             Two quick things, then you're in.
@@ -100,7 +86,7 @@ export function CompleteProfileScreen() {
             ) : (
               <>
                 <Text variant="bodySm" color={color.neutral.inkMuted}>
-                  {roleIntent === "merchant"
+                  {profile?.role === "MERCHANT"
                     ? "So customers nearby can find your shop. Do this while you're at the shop."
                     : "So we can ask the shops closest to you — nothing is shared with them beyond the search area."}
                 </Text>
@@ -135,7 +121,7 @@ export function CompleteProfileScreen() {
               </Text>
             </View>
             <Text variant="bodySm" color={color.neutral.inkMuted}>
-              {roleIntent === "merchant"
+              {profile?.role === "MERCHANT"
                 ? "Customers see your name when they reserve with you."
                 : "The shop needs a name and number to hand your order to."}
             </Text>
@@ -179,7 +165,7 @@ export function CompleteProfileScreen() {
 
         <FadeIn index={3}>
           <Button
-            label={roleIntent === "merchant" ? "Next: your shop" : "Start shopping"}
+            label={profile?.role === "MERCHANT" ? "Next: your shop" : "Start shopping"}
             onPress={save}
             loading={busy}
             disabled={!detailsValid}
@@ -204,14 +190,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxxl,
     gap: spacing.sm,
   },
-  backRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-    marginBottom: spacing.sm,
-    minHeight: 30,
-  },
-  backChev: { fontSize: 22, lineHeight: 28, color: color.neutral.inkMuted },
   sub: { marginBottom: spacing.sm },
   stepHead: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
   stepTitle: { flex: 1 },
