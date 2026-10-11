@@ -25,7 +25,15 @@ export type BusinessType =
   | "SUPERMARKET"
   | "PHARMACY"
   | "STATIONERY"
-  | "GENERAL_STORE";
+  | "GENERAL_STORE"
+  | "RESTAURANT";
+
+/** One page of a restaurant's menu card. `url` is a path on the API. */
+export type MenuImage = {
+  imageId: string;
+  page: number;
+  url: string;
+};
 
 export type BasketItemUnit =
   | "PIECE"
@@ -38,7 +46,14 @@ export type BasketItemUnit =
   | "KG"
   | "GRAM"
   | "LITRE"
-  | "ML";
+  | "ML"
+  | "PLATE"
+  | "HALF_PLATE"
+  | "BOWL"
+  | "GLASS";
+
+/** Groceries go to kiranas and the like; food only to restaurants. */
+export type BasketCategory = "GROCERY" | "FOOD";
 
 export type BasketStatus = "ACTIVE" | "EXPIRED" | "RESERVED" | "PENDING_BROADCAST" | "CANCELLED";
 export type BasketTargetMode = "NEARBY" | "SELECTED_STORES";
@@ -59,6 +74,7 @@ export type BasketHistoryItem = {
   expiresAt: string;
   totalItems: number;
   targetMode: BasketTargetMode;
+  category: BasketCategory;
 };
 
 export type BasketDetails = {
@@ -71,6 +87,7 @@ export type BasketDetails = {
   createdAt: string;
   expiresAt: string;
   items: BasketItem[];
+  category: BasketCategory;
 };
 
 export type BroadcastRecipientStatus = "PENDING" | "VIEWED" | "RESPONDED" | "EXPIRED";

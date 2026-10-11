@@ -13,7 +13,13 @@ public record MerchantOfferItemSummaryResponse(
 
         MerchantOfferItemStatus status,
 
-        BigDecimal availableQuantity
+        BigDecimal availableQuantity,
+
+        /** This shop's price per unit for this line. Null if it didn't quote. */
+        BigDecimal quotedUnitPrice,
+
+        /** What the shopper said they expected to pay. Null if they didn't say. */
+        BigDecimal expectedUnitPrice
 
 ) {
 }

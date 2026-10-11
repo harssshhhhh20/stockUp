@@ -20,6 +20,7 @@ import { ProfileScreen } from "../screens/shared/ProfileScreen";
 import { OrderDetailScreen } from "../screens/shared/OrderDetailScreen";
 import { RateOrderScreen } from "../screens/customer/RateOrderScreen";
 import { PickShopsScreen } from "../screens/customer/PickShopsScreen";
+import { StoreMenuScreen } from "../screens/customer/StoreMenuScreen";
 import { BecomeMerchantScreen } from "../screens/onboarding/BecomeMerchantScreen";
 import { ChooseRoleScreen } from "../screens/onboarding/ChooseRoleScreen";
 import { CompleteProfileScreen } from "../screens/onboarding/CompleteProfileScreen";
@@ -118,6 +119,7 @@ export function RootNavigator() {
       <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
       <Stack.Screen name="RateOrder" component={RateOrderScreen} />
       <Stack.Screen name="PickShops" component={PickShopsScreen} />
+            <Stack.Screen name="StoreMenu" component={StoreMenuScreen} />
             <Stack.Screen name="RespondToRequest" component={RespondToRequestScreen} />
             <Stack.Screen
               name="MerchantReservationDetail"

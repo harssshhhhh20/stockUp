@@ -8,6 +8,14 @@ spring:
   # Load secrets from the gitignored .env at the repo root, so running the app
   # needs no exported variables and no secret ever lands in a committed file.
   # `optional:` means a missing .env is fine (CI, fresh clone, production).
+  # Menu card photos. The phone resizes before upload, so a page is usually a
+  # few hundred KB; the service itself caps a page at 5 MB with a clear message,
+  # and this sits just above it so that message is what the user sees.
+  servlet:
+    multipart:
+      max-file-size: 6MB
+      max-request-size: 7MB
+
   config:
     import:
       - optional:file:./.env[.properties]

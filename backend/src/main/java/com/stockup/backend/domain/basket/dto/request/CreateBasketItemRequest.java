@@ -21,7 +21,11 @@ public record CreateBasketItemRequest(
 
         String brand,
 
-        String notes
+        String notes,
+
+        /** What the shopper expects to pay per unit. Optional — many won't know. */
+        @DecimalMin(value = "0.01", message = "A price has to be more than zero.")
+        BigDecimal expectedUnitPrice
 
 ) {
 }

@@ -5,5 +5,6 @@ public enum BusinessType {
     SUPERMARKET,
     PHARMACY,
     STATIONERY,
-    GENERAL_STORE
+    GENERAL_STORE,
+    RESTAURANT
 }

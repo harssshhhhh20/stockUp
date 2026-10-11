@@ -1,6 +1,7 @@
 package com.stockup.backend.domain.basket.entity;
 
 import com.stockup.backend.common.persistence.entity.AuditableEntity;
+import com.stockup.backend.domain.basket.enums.BasketCategory;
 import com.stockup.backend.domain.basket.enums.BasketItemUnit;
 import com.stockup.backend.domain.basket.enums.BasketStatus;
 import com.stockup.backend.domain.basket.enums.BasketTargetMode;
@@ -33,6 +34,11 @@ public class Basket extends AuditableEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "target_mode", nullable = false)
     private BasketTargetMode targetMode;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private BasketCategory category = BasketCategory.GROCERY;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -74,7 +80,8 @@ public class Basket extends AuditableEntity {
             BigDecimal quantity,
             BasketItemUnit unit,
             String brand,
-            String notes
+            String notes,
+            BigDecimal expectedUnitPrice
     ) {
         BasketItem item = BasketItem.builder()
                 .basket(this)
@@ -83,9 +90,36 @@ public class Basket extends AuditableEntity {
                 .unit(unit)
                 .brand(brand)
                 .notes(notes)
+                .expectedUnitPrice(expectedUnitPrice)
                 .build();
 
         items.add(item);
+    }
+
+    /**
+     * What the shopper thinks this list costs — the sum of the lines they
+     * priced. Null when nobody priced anything, so a shop is never shown a
+     * total built from a single item out of twelve.
+     */
+    public BigDecimal expectedTotal() {
+        BigDecimal sum = BigDecimal.ZERO;
+        boolean any = false;
+        for (BasketItem item : items) {
+            BigDecimal line = item.expectedLineTotal();
+            if (line != null) {
+                sum = sum.add(line);
+                any = true;
+            }
+        }
+        return any ? sum : null;
+    }
+
+    /** True once enough of the list is priced for a total to mean anything. */
+    public boolean hasUsableExpectedTotal() {
+        if (items.isEmpty()) return false;
+        long priced = items.stream().filter(i -> i.getExpectedUnitPrice() != null).count();
+        // Over half the lines, or it is a guess dressed up as a number.
+        return priced * 2 > items.size();
     }
 
 
@@ -100,6 +134,7 @@ public class Basket extends AuditableEntity {
 
     public static Basket create(
             User customer,
+            BasketCategory category,
             BasketTargetMode targetMode,
             Integer searchRadiusMeters,
             BigDecimal basketLatitude,
@@ -109,6 +144,7 @@ public class Basket extends AuditableEntity {
 
         return Basket.builder()
                 .customer(customer)
+                .category(category)
                 .targetMode(targetMode)
                 .status(BasketStatus.PENDING_BROADCAST)
                 .broadcastAt(broadcastAt)

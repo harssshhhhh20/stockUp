@@ -41,6 +41,16 @@ public class MerchantOffer extends AuditableEntity {
     )
     private final List<MerchantOfferItem> offerItems = new ArrayList<>();
 
+    /**
+     * What this shop will charge for the whole basket.
+     *
+     * Deliberately one number rather than a price per line: a shopkeeper
+     * answering mid-rush will not type twelve prices, and a kirana quotes a
+     * total anyway. Null when the shop answered availability only.
+     */
+    @Column(name = "quoted_total", precision = 10, scale = 2)
+    private BigDecimal quotedTotal;
+
     private MerchantOffer(BroadcastRecipient broadcastRecipient) {
         this.broadcastRecipient = Objects.requireNonNull(broadcastRecipient);
         this.status = MerchantOfferStatus.SUBMITTED;
@@ -49,6 +59,14 @@ public class MerchantOffer extends AuditableEntity {
     public static MerchantOffer submit(
             BroadcastRecipient broadcastRecipient,
             List<MerchantOfferResponse> responses
+    ) {
+        return submit(broadcastRecipient, responses, null);
+    }
+
+    public static MerchantOffer submit(
+            BroadcastRecipient broadcastRecipient,
+            List<MerchantOfferResponse> responses,
+            BigDecimal quotedTotal
     ) {
         Objects.requireNonNull(responses);
         MerchantOffer offer = new MerchantOffer(broadcastRecipient);
@@ -78,12 +96,27 @@ public class MerchantOffer extends AuditableEntity {
                             offer,
                             response.basketItem(),
                             response.status(),
-                            response.availableQuantity()
+                            response.availableQuantity(),
+                            response.quotedUnitPrice()
                     )
             );
         }
+        offer.quotedTotal = quotedTotal;
         return offer;
     }
+
+    /**
+     * How far under the shopper's own expectation this quote came in.
+     *
+     * Positive means the shop beat what the shopper expected to pay. Null
+     * whenever either side of the comparison is missing — no quote, or a list
+     * nobody priced. Never inferred from a partial basket.
+     */
+    public BigDecimal savingAgainst(BigDecimal expectedTotal) {
+        if (quotedTotal == null || expectedTotal == null) return null;
+        return expectedTotal.subtract(quotedTotal);
+    }
+
     public void markReserved() {
         validateStatus(MerchantOfferStatus.SUBMITTED);
         this.status = MerchantOfferStatus.RESERVED;

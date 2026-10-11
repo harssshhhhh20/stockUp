@@ -8,48 +8,73 @@ import { Button } from "../../components/Button";
 import { TextField } from "../../components/TextField";
 import { useToast } from "../../components/Toast";
 import { BasketApi } from "../../api/endpoints";
-import { BasketItemUnit } from "../../api/types";
+import { BasketCategory, BasketItemUnit } from "../../api/types";
 import { ApiError } from "../../api/client";
 import { color, radius, spacing } from "../../theme/tokens";
 import { contentWidth } from "../../theme/layoutStyles";
 import { useLocation } from "../../state/useLocation";
-
-const UNITS: BasketItemUnit[] = [
-  "PIECE",
-  "PACKET",
-  "KG",
-  "GRAM",
-  "LITRE",
-  "ML",
-  "BOX",
-  "BOTTLE",
-  "DOZEN",
-  "STRIP",
-  "CAN",
-];
-
-const UNIT_LABEL: Record<BasketItemUnit, string> = {
-  PIECE: "pc",
-  PACKET: "packet",
-  KG: "kg",
-  GRAM: "g",
-  LITRE: "L",
-  ML: "ml",
-  BOX: "box",
-  BOTTLE: "bottle",
-  DOZEN: "dozen",
-  STRIP: "strip",
-  CAN: "can",
-};
+import { UNITS_FOR, unitLabel } from "../../lib/units";
 
 type Draft = {
   productName: string;
   quantity: string;
   unit: BasketItemUnit;
   brand: string;
+  notes: string;
 };
 
-const EMPTY: Draft = { productName: "", quantity: "1", unit: "PIECE", brand: "" };
+/**
+ * A grocery list and a food order ask different questions: "which brand, how
+ * many grams" versus "how many plates, how spicy". Each gets its own words,
+ * units and audience — food goes only to restaurants, groceries never do.
+ */
+const COPY: Record<
+  BasketCategory,
+  {
+    tab: string;
+    title: string;
+    subtitle: string;
+    placeholder: string;
+    notesPlaceholder: string | null;
+    add: string;
+    who: string;
+    send: string;
+    sent: string;
+    footnote: string;
+    footnoteTargeted: string;
+  }
+> = {
+  GROCERY: {
+    tab: "🛒  Groceries",
+    title: "New list",
+    subtitle: "What do you need?",
+    placeholder: "e.g. Amul milk",
+    notesPlaceholder: null,
+    add: "+  Add another item",
+    who: "shops",
+    send: "Send to nearby shops",
+    sent: "List sent to nearby shops 🎉",
+    footnote: "Shops near you get 15 minutes to reply with what they have.",
+    footnoteTargeted: "The shops you picked get 15 minutes to reply.",
+  },
+  FOOD: {
+    tab: "🍽️  Food",
+    title: "Order food",
+    subtitle: "What would you like to eat?",
+    placeholder: "e.g. Paneer butter masala",
+    notesPlaceholder: "Any instructions? e.g. less spicy, no onion",
+    add: "+  Add another dish",
+    who: "restaurants",
+    send: "Send to nearby restaurants",
+    sent: "Order sent to nearby restaurants 🎉",
+    footnote: "Restaurants near you get 15 minutes to say what they can make.",
+    footnoteTargeted: "The restaurants you picked get 15 minutes to reply.",
+  },
+};
+
+function emptyDraft(category: BasketCategory): Draft {
+  return { productName: "", quantity: "1", unit: UNITS_FOR[category][0], brand: "", notes: "" };
+}
 
 export function CreateBasketScreen() {
   const nav = useNavigation<any>();
@@ -58,14 +83,26 @@ export function CreateBasketScreen() {
   // Set when the shopper came back from picking specific shops.
   const storeIds: string[] | undefined = route.params?.storeIds;
   const targeted = !!storeIds?.length;
+  const [category, setCategory] = useState<BasketCategory>(route.params?.category ?? "GROCERY");
+  const copy = COPY[category];
+  const units = UNITS_FOR[category];
   const { coords, status: locationStatus, request: requestLocation } = useLocation();
-  const [items, setItems] = useState<Draft[]>([{ ...EMPTY }]);
+  const [items, setItems] = useState<Draft[]>(() => [emptyDraft(route.params?.category ?? "GROCERY")]);
   const [radiusKm, setRadiusKm] = useState(3);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const hasItems = items.some((i) => i.productName.trim() && Number(i.quantity) > 0);
   const valid = hasItems && !!coords;
+
+  function switchCategory(next: BasketCategory) {
+    if (next === category) return;
+    setCategory(next);
+    // Keep what was typed; only the units have to change to ones that fit.
+    setItems((prev) =>
+      prev.map((it) => (UNITS_FOR[next].includes(it.unit) ? it : { ...it, unit: UNITS_FOR[next][0] }))
+    );
+  }
 
   function update(index: number, patch: Partial<Draft>) {
     setItems((prev) => prev.map((it, i) => (i === index ? { ...it, ...patch } : it)));
@@ -82,13 +119,14 @@ export function CreateBasketScreen() {
         quantity: Number(i.quantity),
         unit: i.unit,
         brand: i.brand.trim() || null,
-        notes: null,
+        notes: i.notes.trim() || null,
       }));
 
     try {
       const res = await BasketApi.create(
         targeted
           ? {
+              category,
               targetMode: "SELECTED_STORES",
               basketLatitude: coords.latitude,
               basketLongitude: coords.longitude,
@@ -96,6 +134,7 @@ export function CreateBasketScreen() {
               storeIds,
             }
           : {
+              category,
               targetMode: "NEARBY",
               searchRadiusMeters: radiusKm * 1000,
               basketLatitude: coords.latitude,
@@ -103,11 +142,13 @@ export function CreateBasketScreen() {
               items: payloadItems,
             }
       );
-      toast("List sent to nearby shops 🎉", "positive");
+      toast(targeted ? `Sent to the ${copy.who} you picked 🎉` : copy.sent, "positive");
       nav.replace("BasketDetail", { basketId: res.basketId });
     } catch (e) {
       setError(
-        e instanceof ApiError ? e.message : "Couldn't send your list. Try again."
+        e instanceof ApiError
+          ? e.fieldErrors[0]?.message ?? e.message
+          : "Couldn't send your list. Try again."
       );
       setSubmitting(false);
     }
@@ -115,13 +156,43 @@ export function CreateBasketScreen() {
 
   return (
     <View style={styles.flex}>
-      <AppBar title="New list" subtitle="What do you need?" onBack={() => nav.goBack()} />
-      <ScrollView contentContainerStyle={[styles.content, contentWidth.column]} showsVerticalScrollIndicator={false}>
+      <AppBar title={copy.title} subtitle={copy.subtitle} onBack={() => nav.goBack()} />
+      <ScrollView
+        contentContainerStyle={[styles.content, contentWidth.column]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Locked once shops are picked: they were picked for this kind. */}
+        {!targeted ? (
+          <View style={styles.segment} accessibilityRole="tablist">
+            {(["GROCERY", "FOOD"] as BasketCategory[]).map((c) => {
+              const active = category === c;
+              return (
+                <Pressable
+                  key={c}
+                  onPress={() => switchCategory(c)}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: active }}
+                  style={[styles.segmentItem, active && styles.segmentItemActive]}
+                >
+                  <Text
+                    variant="body"
+                    weight="semibold"
+                    color={active ? "#fff" : color.neutral.inkMuted}
+                  >
+                    {COPY[c].tab}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
+
         {items.map((item, index) => (
           <Card key={index} elevated>
             <View style={styles.cardHead}>
               <Text variant="caption" color={color.neutral.inkMuted}>
-                Item {index + 1}
+                {category === "FOOD" ? "Dish" : "Item"} {index + 1}
               </Text>
               {items.length > 1 ? (
                 <Pressable
@@ -136,7 +207,7 @@ export function CreateBasketScreen() {
             </View>
 
             <TextField
-              placeholder="e.g. Amul milk"
+              placeholder={copy.placeholder}
               value={item.productName}
               onChangeText={(t) => update(index, { productName: t })}
             />
@@ -146,8 +217,13 @@ export function CreateBasketScreen() {
                 <TextField
                   placeholder="1"
                   value={item.quantity}
-                  onChangeText={(t) => update(index, { quantity: t.replace(/[^0-9.]/g, "") })}
-                  keyboardType="decimal-pad"
+                  onChangeText={(t) =>
+                    update(index, {
+                      // Half a plate is its own unit; "1.5 plates" isn't an order.
+                      quantity: t.replace(category === "FOOD" ? /[^0-9]/g : /[^0-9.]/g, ""),
+                    })
+                  }
+                  keyboardType={category === "FOOD" ? "number-pad" : "decimal-pad"}
                 />
               </View>
               <ScrollView
@@ -155,7 +231,7 @@ export function CreateBasketScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.units}
               >
-                {UNITS.map((u) => {
+                {units.map((u) => {
                   const active = item.unit === u;
                   return (
                     <Pressable
@@ -168,43 +244,51 @@ export function CreateBasketScreen() {
                         weight="semibold"
                         color={active ? "#fff" : color.neutral.inkMuted}
                       >
-                        {UNIT_LABEL[u]}
+                        {unitLabel(u)}
                       </Text>
                     </Pressable>
                   );
                 })}
               </ScrollView>
             </View>
+
+            {copy.notesPlaceholder ? (
+              <TextField
+                placeholder={copy.notesPlaceholder}
+                value={item.notes}
+                onChangeText={(t) => update(index, { notes: t })}
+              />
+            ) : null}
           </Card>
         ))}
 
         <Button
-          label="+  Add another item"
+          label={copy.add}
           variant="secondary"
-          onPress={() => setItems((p) => [...p, { ...EMPTY }])}
+          onPress={() => setItems((p) => [...p, emptyDraft(category)])}
         />
 
         <Card elevated>
           <View style={styles.cardHead}>
             <Text variant="caption" color={color.neutral.inkMuted}>
-              {targeted ? "Asking these shops" : "How far to look"}
+              {targeted ? `Asking these ${copy.who}` : "How far to look"}
             </Text>
             <Pressable
               onPress={() =>
-                nav.navigate("PickShops", { selected: storeIds ?? [] })
+                nav.navigate("PickShops", { selected: storeIds ?? [], category })
               }
               hitSlop={8}
             >
               <Text variant="bodySm" weight="semibold" color={color.brand[600]}>
-                {targeted ? "Change" : "Pick shops instead"}
+                {targeted ? "Change" : `Pick ${copy.who} instead`}
               </Text>
             </Pressable>
           </View>
 
           {targeted ? (
             <Text variant="body" color={color.neutral.inkMuted}>
-              {storeIds!.length} shop{storeIds!.length === 1 ? "" : "s"} chosen — only they
-              will see this list.
+              {storeIds!.length} {storeIds!.length === 1 ? copy.who.slice(0, -1) : copy.who} chosen —
+              only they will see this {category === "FOOD" ? "order" : "list"}.
             </Text>
           ) : null}
           <View style={[styles.radiusRow, targeted && styles.hidden]}>
@@ -252,15 +336,19 @@ export function CreateBasketScreen() {
         ) : null}
 
         <Button
-          label={locationStatus === "loading" ? "Finding you…" : "Send to nearby shops"}
+          label={
+            locationStatus === "loading"
+              ? "Finding you…"
+              : targeted
+              ? `Send to ${storeIds!.length === 1 ? `this ${copy.who.slice(0, -1)}` : `these ${copy.who}`}`
+              : copy.send
+          }
           onPress={submit}
           loading={submitting}
           disabled={!valid}
         />
         <Text variant="bodySm" color={color.neutral.inkFaint} style={styles.footnote}>
-          {targeted
-            ? "The shops you picked get 15 minutes to reply."
-            : "Shops near you get 15 minutes to reply with what they have."}
+          {targeted ? copy.footnoteTargeted : copy.footnote}
         </Text>
       </ScrollView>
     </View>
@@ -269,6 +357,21 @@ export function CreateBasketScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: color.neutral.background },
+  segment: {
+    flexDirection: "row",
+    gap: 4,
+    padding: 4,
+    borderRadius: radius.pill,
+    backgroundColor: color.neutral.surfaceMuted,
+  },
+  segmentItem: {
+    flex: 1,
+    height: 44,
+    borderRadius: radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  segmentItemActive: { backgroundColor: color.brand[500] },
   content: {
     padding: spacing.lg,
     paddingTop: 0,

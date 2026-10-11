@@ -32,7 +32,8 @@ public class MerchantOfferMapper {
                     return new MerchantOfferResponse(
                             basketItem,
                             item.status(),
-                            item.availableQuantity()
+                            item.availableQuantity(),
+                            item.quotedUnitPrice()
                     );
 
                 })

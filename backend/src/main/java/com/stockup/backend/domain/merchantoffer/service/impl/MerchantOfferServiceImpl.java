@@ -20,6 +20,7 @@ import com.stockup.backend.domain.merchantoffer.mapper.MerchantOfferMapper;
 import com.stockup.backend.domain.merchantoffer.repository.MerchantOfferRepository;
 import com.stockup.backend.domain.merchantoffer.service.MerchantOfferService;
 import com.stockup.backend.domain.merchantoffer.value.MerchantOfferResponse;
+import com.stockup.backend.domain.pricing.service.SuggestedPricing;
 import com.stockup.backend.domain.notification.entity.enums.NotificationType;
 import com.stockup.backend.domain.notification.service.NotificationService;
 import com.stockup.backend.domain.reservation.event.EventActor;
@@ -32,6 +33,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -46,6 +48,7 @@ public class MerchantOfferServiceImpl implements MerchantOfferService {
     private final BroadcastRecipientRepository broadcastRecipientRepository;
     private final MerchantOfferRepository merchantOfferRepository;
     private final MerchantOfferMapper merchantOfferMapper;
+    private final SuggestedPricing suggestedPricing;
     private final CurrentUserService currentUserService;
     private final MerchantRepository merchantRepository;
     private final NotificationService notificationService;
@@ -101,11 +104,24 @@ public class MerchantOfferServiceImpl implements MerchantOfferService {
         List<MerchantOfferResponse> responses = merchantOfferMapper.toResponses(request, basketItems);
         MerchantOffer merchantOffer = MerchantOffer.submit(
                 broadcastRecipient,
-                responses
+                responses,
+                request.quotedTotal()
         );
         broadcastRecipient.markResponded();
 
         merchantOfferRepository.save(merchantOffer);
+
+        // Learn this shop's prices from what it actually quoted, so the next
+        // request for the same product arrives already filled in. This is the
+        // whole reason a shopkeeper can price twelve lines in three taps.
+        for (MerchantOfferResponse response : responses) {
+            suggestedPricing.remember(
+                    broadcastRecipient.getStore(),
+                    response.basketItem().getProductName(),
+                    response.basketItem().getUnit(),
+                    response.quotedUnitPrice()
+            );
+        }
 
         eventRecorder.recordBroadcastStage(
                 broadcastRecipient.getBroadcast().getBasket().getId(),
@@ -147,7 +163,14 @@ public class MerchantOfferServiceImpl implements MerchantOfferService {
         return merchantOfferRepository
                 .findAllByBroadcastRecipient_Broadcast_Basket(basket)
                 .stream()
-                .map(offer -> new MerchantOfferSummaryResponse(
+                .map(offer -> {
+                    // The shopper's own number is the baseline the app counts
+                    // down from — never another customer's price, which is why
+                    // showing the saving reveals nothing about anyone else.
+                    BigDecimal expectedTotal = basket.expectedTotal();
+                    BigDecimal quotedTotal = offer.getQuotedTotal();
+
+                    return new MerchantOfferSummaryResponse(
                         offer.getId(),
                         offer.getBroadcastRecipient().getId(),
                         offer.getBroadcastRecipient().getStore().getId(),
@@ -160,10 +183,16 @@ public class MerchantOfferServiceImpl implements MerchantOfferService {
                                         item.getBasketItem().getId(),
                                         item.getBasketItem().getProductName(),
                                         item.getStatus(),
-                                        item.getAvailableQuantity()
+                                        item.getAvailableQuantity(),
+                                        item.getQuotedUnitPrice(),
+                                        item.getBasketItem().getExpectedUnitPrice()
                                 ))
-                                .toList()
-                ))
+                                .toList(),
+                        expectedTotal,
+                        quotedTotal,
+                        offer.savingAgainst(expectedTotal)
+                    );
+                })
                 .toList();
     }
 

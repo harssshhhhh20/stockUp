@@ -1,8 +1,11 @@
+import { Platform } from "react-native";
+import { File } from "expo-file-system";
 import { api } from "./client";
 import {
   AppNotification,
   AuthResponse,
   BharosaResponse,
+  BasketCategory,
   BasketDetails,
   BasketHistoryItem,
   BasketItemUnit,
@@ -13,6 +16,7 @@ import {
   MerchantProfileResponse,
   Page,
   FeedbackResponse,
+  MenuImage,
   MerchantStats,
   NearbyStore,
   OrderDetail,
@@ -52,15 +56,34 @@ export const StoreApi = {
     state: string;
     postalCode: string;
     country: string;
-    latitude: number;
-    longitude: number;
+    /** Null when the address was typed: the server looks it up instead. */
+    latitude: number | null;
+    longitude: number | null;
   }) => api.post<void>("/api/v1/stores", payload),
   me: () => api.get<StoreResponse | null>("/api/v1/stores/me"),
+  menuImages: (storeId: string) =>
+    api.get<MenuImage[]>(`/api/v1/stores/${storeId}/menu-images`),
+  /** `uri` is a local file (from the picker, after resizing). One page per call. */
+  uploadMenuImage: async (uri: string) => {
+    const form = new FormData();
+    if (Platform.OS === "web") {
+      form.append("file", await (await fetch(uri)).blob(), "menu.jpg");
+    } else {
+      // Not React Native's {uri, name, type} descriptor: Expo replaces the
+      // global fetch, and its FormData only accepts real file objects —
+      // a descriptor makes the upload throw before it is ever sent.
+      form.append("file", new File(uri) as unknown as Blob);
+    }
+    return api.upload<MenuImage>("/api/v1/stores/me/menu-images", form);
+  },
+  deleteMenuImage: (imageId: string) =>
+    api.delete<void>(`/api/v1/stores/me/menu-images/${imageId}`),
 };
 
 // ---- Baskets ----
 export const BasketApi = {
   create: (payload: {
+    category: BasketCategory;
     targetMode: BasketTargetMode;
     searchRadiusMeters?: number;
     basketLatitude: number;

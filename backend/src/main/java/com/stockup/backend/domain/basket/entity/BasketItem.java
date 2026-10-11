@@ -36,4 +36,21 @@ public class BasketItem extends AuditableEntity {
 
     @Column(length = 500)
     private String notes;
+
+    /**
+     * What the shopper expects to pay per unit, if they know.
+     *
+     * This is the shopper's number, not a catalogue price — it is what makes a
+     * quote meaningful without StockUp ever having to maintain a price list.
+     * Null whenever they don't know, which must stay perfectly acceptable.
+     */
+    @Column(name = "expected_unit_price", precision = 10, scale = 2)
+    private BigDecimal expectedUnitPrice;
+
+    /** What this line is expected to cost. Null unless a price was given. */
+    public BigDecimal expectedLineTotal() {
+        return expectedUnitPrice == null
+                ? null
+                : expectedUnitPrice.multiply(quantity);
+    }
 }

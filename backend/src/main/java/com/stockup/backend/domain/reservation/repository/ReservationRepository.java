@@ -45,4 +45,16 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
             ReservationStatus status,
             Pageable pageable
     );
+
+    /**
+     * How many orders this shopper has actually collected from this shop.
+     *
+     * The basis of relationship pricing: the shopkeeper sees who is a regular
+     * at HIS counter and decides for himself what to charge them. Counts
+     * completed handovers only, so it can't be farmed by placing orders.
+     */
+    int countByCustomerAndStoreAndStatus(
+            com.stockup.backend.domain.user.entity.User customer,
+            com.stockup.backend.domain.store.entity.Store store,
+            com.stockup.backend.domain.reservation.entity.enums.ReservationStatus status);
 }

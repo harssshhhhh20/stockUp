@@ -13,6 +13,7 @@ import { BroadcastRecipientSummary } from "../../api/types";
 import { useAuth } from "../../state/AuthContext";
 import { color, spacing } from "../../theme/tokens";
 import { contentWidth } from "../../theme/layoutStyles";
+import { unitLabel } from "../../lib/units";
 
 export function RequestsScreen() {
   const nav = useNavigation<any>();
@@ -96,7 +97,7 @@ export function RequestsScreen() {
                         {item.productName}
                       </Text>
                       <Text variant="mono" color={color.neutral.inkMuted}>
-                        {item.quantity} {item.unit.toLowerCase()}
+                        {item.quantity} {unitLabel(item.unit)}
                       </Text>
                     </View>
                   ))}

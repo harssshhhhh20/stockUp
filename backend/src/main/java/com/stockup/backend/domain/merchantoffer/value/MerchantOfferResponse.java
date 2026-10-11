@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 public record MerchantOfferResponse(
         BasketItem basketItem,
         MerchantOfferItemStatus status,
-        BigDecimal availableQuantity
+        BigDecimal availableQuantity,
+        BigDecimal quotedUnitPrice
 ) {
 }

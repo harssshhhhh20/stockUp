@@ -41,6 +41,13 @@
         }
       ],
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "StockUp uses your photos so you can add pages of your restaurant's menu card.",
+          "cameraPermission": "StockUp uses the camera so you can photograph your restaurant's menu card."
+        }
+      ],
+      [
         "expo-notifications",
         {
           "color": "#0E7C74"

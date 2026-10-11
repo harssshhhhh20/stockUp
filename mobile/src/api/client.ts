@@ -44,6 +44,7 @@ export class ApiError extends Error {
 
 type RequestOptions = {
   method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
+  /** JSON-encoded, unless it's FormData (file uploads), which is sent as-is. */
   body?: unknown;
   auth?: boolean;
   query?: Record<string, string | number | undefined>;
@@ -108,7 +109,9 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   }
 
   async function send(token: string | null) {
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    // FormData must set its own Content-Type: the multipart boundary is in it.
+    const isForm = typeof FormData !== "undefined" && body instanceof FormData;
+    const headers: Record<string, string> = isForm ? {} : { "Content-Type": "application/json" };
     if (token) headers.Authorization = `Bearer ${token}`;
 
     // Without a deadline this hangs forever when the backend's address is
@@ -122,7 +125,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
       return await fetch(url, {
         method,
         headers,
-        body: body !== undefined ? JSON.stringify(body) : undefined,
+        body: isForm ? (body as FormData) : body !== undefined ? JSON.stringify(body) : undefined,
         signal: controller.signal,
       });
     } catch (e) {
@@ -176,4 +179,12 @@ export const api = {
     request<T>(path, { method: "POST", body, auth }),
   patch: <T>(path: string, body?: unknown, auth = true) =>
     request<T>(path, { method: "PATCH", body, auth }),
+  delete: <T>(path: string, auth = true) => request<T>(path, { method: "DELETE", auth }),
+  upload: <T>(path: string, form: FormData) =>
+    request<T>(path, { method: "POST", body: form, auth: true }),
 };
+
+/** The API hands back paths, not absolute URLs; resolve one for <Image>. */
+export function apiUrl(path: string) {
+  return `${API_BASE_URL}${path}`;
+}

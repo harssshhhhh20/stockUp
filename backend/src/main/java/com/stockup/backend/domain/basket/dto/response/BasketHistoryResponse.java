@@ -1,5 +1,6 @@
 package com.stockup.backend.domain.basket.dto.response;
 
+import com.stockup.backend.domain.basket.enums.BasketCategory;
 import com.stockup.backend.domain.basket.enums.BasketStatus;
 import com.stockup.backend.domain.basket.enums.BasketTargetMode;
 
@@ -18,7 +19,9 @@ public record BasketHistoryResponse(
 
         int totalItems,
 
-        BasketTargetMode targetMode
+        BasketTargetMode targetMode,
+
+        BasketCategory category
 
 ) {
 }

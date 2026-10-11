@@ -86,7 +86,9 @@ export function BasketsScreen() {
                 <View style={styles.cardTop}>
                   <StatusPill status={s.status} label={s.label} />
                   <Text variant="bodySm" color={color.neutral.inkFaint}>
-                    {b.totalItems} item{b.totalItems === 1 ? "" : "s"}
+                    {b.category === "FOOD"
+                      ? `🍽️ ${b.totalItems} dish${b.totalItems === 1 ? "" : "es"}`
+                      : `${b.totalItems} item${b.totalItems === 1 ? "" : "s"}`}
                   </Text>
                 </View>
                 {live ? (

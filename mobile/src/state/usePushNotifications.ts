@@ -1,9 +1,19 @@
 import { useEffect, useRef } from "react";
 import { Platform } from "react-native";
-import * as Notifications from "expo-notifications";
+import { isRunningInExpoGo } from "expo";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
 import { api } from "../api/client";
+
+type NotificationsModule = typeof import("expo-notifications");
+
+// Expo Go dropped remote push in SDK 53, and on Android merely *importing*
+// expo-notifications throws (its token auto-registration runs at load), which
+// takes the whole app down before the first screen. So it is required only
+// outside Expo Go; Metro evaluates a module on first require, not at bundle.
+const Notifications: NotificationsModule | null = isRunningInExpoGo()
+  ? null
+  : require("expo-notifications");
 
 /**
  * Registers this device for push once the user is signed in.
@@ -13,7 +23,7 @@ import { api } from "../api/client";
  * someone using the app. Expo relays to APNs and FCM, so nothing here needs
  * Apple or Google credentials during development.
  */
-Notifications.setNotificationHandler({
+Notifications?.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
     shouldShowList: true,
@@ -41,10 +51,10 @@ export function usePushNotifications(signedIn: boolean) {
           return;
         }
 
-        // Expo Go dropped remote push in SDK 53. On a real phone this is the
-        // single most likely reason nothing arrives, and it cannot be worked
-        // around from here — it needs a development build.
-        if (Constants.appOwnership === "expo") {
+        // On a real phone this is the single most likely reason nothing
+        // arrives, and it cannot be worked around from here — it needs a
+        // development build.
+        if (!Notifications) {
           warn("Expo Go can't receive push since SDK 53 — use a development build");
           return;
         }

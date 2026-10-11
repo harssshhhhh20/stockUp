@@ -14,11 +14,14 @@ import { color, font, radius, spacing } from "../../theme/tokens";
 import { contentWidth } from "../../theme/layoutStyles";
 
 /**
- * Two steps in one screen: where you are, then who you are.
+ * Two steps in one screen for shoppers: where you are, then who you are.
  *
  * Location is asked first and on its own, with the reason stated before the
  * system dialog appears — a permission prompt with no explanation in front of
  * it is the most common way to get denied permanently.
+ *
+ * Shopkeepers skip the location step: what matters is where the *shop* is, and
+ * the shop setup page that comes next asks for exactly that, optionally.
  */
 export function CompleteProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -31,6 +34,7 @@ export function CompleteProfileScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isMerchant = profile?.role === "MERCHANT";
   const locationDone = locationStatus === "granted" && !!coords;
   const detailsValid = firstName.trim().length > 0 && phone.trim().length >= 7;
 
@@ -58,70 +62,70 @@ export function CompleteProfileScreen() {
         showsVerticalScrollIndicator={false}
       >
         <FadeIn>
-
-          <Text variant="h1">
-            {profile?.role === "MERCHANT" ? "Let's set you up" : "Nearly there"}
-          </Text>
+          <Text variant="h1">{isMerchant ? "Let's set you up" : "Nearly there"}</Text>
           <Text variant="body" color={color.neutral.inkMuted} style={styles.sub}>
-            Two quick things, then you're in.
+            {isMerchant ? "One quick thing, then your shop." : "Two quick things, then you're in."}
           </Text>
         </FadeIn>
 
-        {/* Step 1 — location */}
-        <FadeIn index={1}>
-          <Card elevated style={locationDone ? styles.stepDone : undefined}>
-            <View style={styles.stepHead}>
-              <View style={[styles.stepDot, locationDone && styles.stepDotDone]}>
-                <Text style={styles.stepDotText}>{locationDone ? "✓" : "1"}</Text>
-              </View>
-              <Text variant="h3" style={styles.stepTitle}>
-                {locationDone ? "Location shared" : "Share your location"}
-              </Text>
-            </View>
-
-            {locationDone ? (
-              <Text variant="bodySm" color={color.neutral.inkMuted}>
-                We'll show shops near you and how far each one is.
-              </Text>
-            ) : (
-              <>
-                <Text variant="bodySm" color={color.neutral.inkMuted}>
-                  {profile?.role === "MERCHANT"
-                    ? "So customers nearby can find your shop. Do this while you're at the shop."
-                    : "So we can ask the shops closest to you — nothing is shared with them beyond the search area."}
+        {/* Step 1 — location (shoppers only) */}
+        {!isMerchant ? (
+          <FadeIn index={1}>
+            <Card elevated style={locationDone ? styles.stepDone : undefined}>
+              <View style={styles.stepHead}>
+                <View style={[styles.stepDot, locationDone && styles.stepDotDone]}>
+                  <Text style={styles.stepDotText}>{locationDone ? "✓" : "1"}</Text>
+                </View>
+                <Text variant="h3" style={styles.stepTitle}>
+                  {locationDone ? "Location shared" : "Share your location"}
                 </Text>
+              </View>
 
-                {locationStatus === "denied" ? (
-                  <Text variant="bodySm" color={color.status.attention.strong}>
-                    Permission was declined. You can enable it in Settings, then tap again.
+              {locationDone ? (
+                <Text variant="bodySm" color={color.neutral.inkMuted}>
+                  We'll show shops near you and how far each one is.
+                </Text>
+              ) : (
+                <>
+                  <Text variant="bodySm" color={color.neutral.inkMuted}>
+                    So we can ask the shops closest to you — nothing is shared with them beyond the
+                    search area.
                   </Text>
-                ) : null}
 
-                <Button
-                  label={locationStatus === "loading" ? "Finding you…" : "Allow location"}
-                  variant="secondary"
-                  onPress={requestLocation}
-                  loading={locationStatus === "loading"}
-                  style={styles.stepBtn}
-                />
-              </>
-            )}
-          </Card>
-        </FadeIn>
+                  {locationStatus === "denied" ? (
+                    <Text variant="bodySm" color={color.status.attention.strong}>
+                      Permission was declined. You can enable it in Settings, then tap again.
+                    </Text>
+                  ) : null}
+
+                  <Button
+                    label={locationStatus === "loading" ? "Finding you…" : "Allow location"}
+                    variant="secondary"
+                    onPress={requestLocation}
+                    loading={locationStatus === "loading"}
+                    style={styles.stepBtn}
+                  />
+                </>
+              )}
+            </Card>
+          </FadeIn>
+        ) : null}
 
         {/* Step 2 — details */}
         <FadeIn index={2}>
           <Card elevated>
             <View style={styles.stepHead}>
               <View style={[styles.stepDot, detailsValid && styles.stepDotDone]}>
-                <Text style={styles.stepDotText}>{detailsValid ? "✓" : "2"}</Text>
+                <Text style={styles.stepDotText}>
+                  {detailsValid ? "✓" : isMerchant ? "1" : "2"}
+                </Text>
               </View>
               <Text variant="h3" style={styles.stepTitle}>
                 Who are you?
               </Text>
             </View>
             <Text variant="bodySm" color={color.neutral.inkMuted}>
-              {profile?.role === "MERCHANT"
+              {isMerchant
                 ? "Customers see your name when they reserve with you."
                 : "The shop needs a name and number to hand your order to."}
             </Text>
@@ -165,12 +169,12 @@ export function CompleteProfileScreen() {
 
         <FadeIn index={3}>
           <Button
-            label={profile?.role === "MERCHANT" ? "Next: your shop" : "Start shopping"}
+            label={isMerchant ? "Next: your shop" : "Start shopping"}
             onPress={save}
             loading={busy}
             disabled={!detailsValid}
           />
-          {!locationDone ? (
+          {!isMerchant && !locationDone ? (
             <Pulse style={styles.hintWrap}>
               <Text variant="bodySm" color={color.neutral.inkFaint} style={styles.hint}>
                 You can skip location for now, but "nearby" won't work without it.

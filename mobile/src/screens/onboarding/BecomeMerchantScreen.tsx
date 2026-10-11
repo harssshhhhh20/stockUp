@@ -1,12 +1,14 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import * as Location from "expo-location";
 import { AppBar } from "../../components/AppBar";
 import { Card } from "../../components/Card";
 import { Text } from "../../components/Text";
 import { Button } from "../../components/Button";
 import { TextField } from "../../components/TextField";
 import { useToast } from "../../components/Toast";
+import { MenuPhoto, MenuPhotoPicker } from "../../components/MenuPhotoPicker";
 import { MerchantApi, StoreApi } from "../../api/endpoints";
 import { BusinessType } from "../../api/types";
 import { useAuth } from "../../state/AuthContext";
@@ -21,22 +23,36 @@ import { ApiError } from "../../api/client";
  * substances, stationery needs brand-and-size matching. Shipping them as
  * selectable options would mean shipping a worse version of each.
  *
- * They are shown rather than hidden so a shopkeeper can see their category is
- * coming, and so we learn which ones people reach for.
+ * Restaurants are the exception: what a customer needs from one is its menu,
+ * and a photo of the printed card answers that with nothing to build.
+ *
+ * The rest are shown rather than hidden so a shopkeeper can see their category
+ * is coming, and so we learn which ones people reach for.
  */
 const TYPES: { key: BusinessType; label: string; emoji: string; live: boolean }[] = [
   { key: "KIRANA", label: "Kirana", emoji: "🏪", live: true },
+  { key: "RESTAURANT", label: "Restaurant", emoji: "🍽️", live: true },
   { key: "GENERAL_STORE", label: "General", emoji: "📦", live: false },
   { key: "SUPERMARKET", label: "Supermarket", emoji: "🛒", live: false },
   { key: "PHARMACY", label: "Pharmacy", emoji: "💊", live: false },
   { key: "STATIONERY", label: "Stationery", emoji: "✏️", live: false },
 ];
 
+/** "12, MG Road, Camp" from whichever parts the geocoder actually returned. */
+function streetLine(a: Location.LocationGeocodedAddress) {
+  const parts = [a.streetNumber, a.street, a.district].filter(
+    (p, i, all): p is string => !!p && all.indexOf(p) === i
+  );
+  return parts.length ? parts.join(", ") : a.name ?? "";
+}
+
 export function BecomeMerchantScreen() {
   const nav = useNavigation<any>();
   const toast = useToast();
   const { merchantProfile, refreshMerchantState } = useAuth();
-  const { coords, status: locationStatus, request: requestLocation } = useLocation();
+  // Not asked on arrival: location is one optional button on this page, so
+  // nobody meets a permission dialog before they know why it's there.
+  const { coords, status: locationStatus, request: requestLocation } = useLocation(false);
 
   const [name, setName] = useState("");
   const [businessType, setBusinessType] = useState<BusinessType>("KIRANA");
@@ -44,20 +60,54 @@ export function BecomeMerchantScreen() {
   const [city, setCity] = useState("");
   const [stateName, setStateName] = useState("");
   const [postalCode, setPostalCode] = useState("");
+  const [menuPhotos, setMenuPhotos] = useState<MenuPhoto[]>([]);
+  const [filling, setFilling] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Registering as a merchant can succeed while creating the shop then fails
+  // (an address the map can't find); a retry must not register twice.
+  const registered = useRef(!!merchantProfile);
 
-  const detailsFilled =
-    name.trim() && addressLine1.trim() && city.trim() && stateName.trim() && postalCode.trim();
-  const valid = !!detailsFilled && !!coords;
+  const isRestaurant = businessType === "RESTAURANT";
+  // Coordinates are optional: without them the server finds the typed address.
+  const valid =
+    !!name.trim() && !!addressLine1.trim() && !!city.trim() && !!stateName.trim() && !!postalCode.trim();
+
+  async function pinCurrentLocation() {
+    const here = await requestLocation();
+    if (!here) return;
+
+    setFilling(true);
+    try {
+      const [found] = await Location.reverseGeocodeAsync(here);
+      if (!found) throw new Error("no address");
+      const street = streetLine(found);
+      if (street) setAddressLine1(street);
+      if (found.city ?? found.subregion) setCity((found.city ?? found.subregion)!);
+      if (found.region) setStateName(found.region);
+      if (found.postalCode) setPostalCode(found.postalCode.replace(/[^0-9]/g, ""));
+    } catch {
+      // The pin still counts; only the auto-filled text is missing.
+      toast("Pinned your location. Type the address below.", "info");
+    } finally {
+      setFilling(false);
+    }
+  }
+
+  function addPhotos(uris: string[]) {
+    setMenuPhotos((prev) => [
+      ...prev,
+      ...uris.map((uri, i) => ({ key: `${Date.now()}-${i}`, uri })),
+    ]);
+  }
 
   async function submit() {
-    if (!coords) return;
     setBusy(true);
     setError(null);
     try {
-      if (!merchantProfile) {
+      if (!registered.current) {
         await MerchantApi.register();
+        registered.current = true;
       }
       await StoreApi.create({
         name: name.trim(),
@@ -68,17 +118,46 @@ export function BecomeMerchantScreen() {
         state: stateName.trim(),
         postalCode: postalCode.trim(),
         country: "India",
-        latitude: coords.latitude,
-        longitude: coords.longitude,
+        latitude: coords?.latitude ?? null,
+        longitude: coords?.longitude ?? null,
       });
+
+      // The shop exists now, so menu pages have somewhere to go. One failed
+      // page shouldn't undo the shop: report it and let the Shop tab retry.
+      let failed = 0;
+      if (isRestaurant) {
+        for (const photo of menuPhotos) {
+          try {
+            await StoreApi.uploadMenuImage(photo.uri);
+          } catch {
+            failed++;
+          }
+        }
+      }
+
       await refreshMerchantState();
-      toast("Your shop is live 🎉", "positive");
-      nav.goBack();
+      if (failed) {
+        toast(
+          `Your shop is live, but ${failed} menu page${failed === 1 ? "" : "s"} didn't upload. Add ${failed === 1 ? "it" : "them"} from the Shop tab.`,
+          "attention"
+        );
+      } else {
+        toast("Your shop is live 🎉", "positive");
+      }
+      // During onboarding this is the only screen: refreshing the merchant
+      // state above swaps the navigator to the shop's tabs by itself.
+      if (nav.canGoBack()) nav.goBack();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Couldn't set up your shop.");
+      setError(
+        e instanceof ApiError
+          ? e.fieldErrors[0]?.message ?? e.message
+          : "Couldn't set up your shop."
+      );
       setBusy(false);
     }
   }
+
+  const pinned = locationStatus === "granted" && !!coords;
 
   return (
     <View style={styles.flex}>
@@ -86,11 +165,15 @@ export function BecomeMerchantScreen() {
         title="Set up your shop"
         subtitle="Start getting requests from nearby customers"
       />
-      <ScrollView contentContainerStyle={[styles.content, contentWidth.column]} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.content, contentWidth.column]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <Card elevated>
           <TextField
             label="Shop name"
-            placeholder="e.g. Sharma Kirana Store"
+            placeholder={isRestaurant ? "e.g. Sharma Bhojnalaya" : "e.g. Sharma Kirana Store"}
             value={name}
             onChangeText={setName}
           />
@@ -99,8 +182,8 @@ export function BecomeMerchantScreen() {
             What kind of shop?
           </Text>
           <Text variant="bodySm" color={color.neutral.inkFaint} style={styles.typeNote}>
-            We're starting with kirana shops and doing them properly. Other kinds
-            are on the way.
+            We're starting with kirana shops and restaurants, and doing them
+            properly. Other kinds are on the way.
           </Text>
           <View style={styles.types}>
             {TYPES.map((t) => {
@@ -139,9 +222,64 @@ export function BecomeMerchantScreen() {
               );
             })}
           </View>
+
+          {isRestaurant ? (
+            <View style={styles.menuSection}>
+              <Text variant="caption" color={color.neutral.inkMuted}>
+                Menu card
+              </Text>
+              <Text variant="bodySm" color={color.neutral.inkFaint}>
+                Add a photo of each page. Customers see these when they tap your
+                restaurant. Optional — you can add them later from the Shop tab.
+              </Text>
+              <MenuPhotoPicker
+                photos={menuPhotos}
+                onAdd={addPhotos}
+                onRemove={(key) => setMenuPhotos((prev) => prev.filter((p) => p.key !== key))}
+                busy={busy}
+              />
+            </View>
+          ) : null}
         </Card>
 
         <Card elevated>
+          <Text variant="caption" color={color.neutral.inkMuted}>
+            Where is your shop?
+          </Text>
+
+          {pinned ? (
+            <View style={styles.pinnedRow}>
+              <Text variant="bodySm" color={color.status.positive.strong} style={styles.grow}>
+                ✓ Pinned to where you're standing. Check the address below.
+              </Text>
+              <Pressable
+                onPress={pinCurrentLocation}
+                hitSlop={8}
+                accessibilityRole="button"
+                disabled={filling}
+              >
+                <Text variant="bodySm" weight="semibold" color={color.brand[600]}>
+                  Re-pin
+                </Text>
+              </Pressable>
+            </View>
+          ) : (
+            <>
+              <Text variant="bodySm" color={color.neutral.inkFaint}>
+                {locationStatus === "denied" || locationStatus === "error"
+                  ? "No problem — type your address below and we'll find it on the map."
+                  : "Standing in your shop? Tap below and we'll fill in the address. Or just type it."}
+              </Text>
+              <Button
+                label="📍  Use my current location"
+                variant="secondary"
+                onPress={pinCurrentLocation}
+                loading={locationStatus === "loading" || filling}
+                style={styles.locationBtn}
+              />
+            </>
+          )}
+
           <TextField
             label="Street address"
             placeholder="12 MG Road"
@@ -170,22 +308,6 @@ export function BecomeMerchantScreen() {
           </View>
         </Card>
 
-        {locationStatus === "denied" || locationStatus === "error" ? (
-          <Card elevated style={styles.locationCard}>
-            <Text variant="h3">Stand in your shop</Text>
-            <Text variant="bodySm" color={color.neutral.inkMuted}>
-              We pin your shop to where you are right now, so nearby customers can
-              find you. Allow location while you're at the shop.
-            </Text>
-            <Button
-              label="Allow location"
-              variant="secondary"
-              onPress={requestLocation}
-              style={styles.locationBtn}
-            />
-          </Card>
-        ) : null}
-
         {error ? (
           <Text variant="bodySm" color={color.status.urgent.strong}>
             {error}
@@ -193,10 +315,10 @@ export function BecomeMerchantScreen() {
         ) : null}
 
         <Button
-          label={locationStatus === "loading" ? "Finding your shop…" : "Open my shop"}
+          label={busy && isRestaurant && menuPhotos.length ? "Opening shop, uploading menu…" : "Open my shop"}
           onPress={submit}
           loading={busy}
-          disabled={!valid}
+          disabled={!valid || filling}
         />
       </ScrollView>
     </View>
@@ -252,11 +374,10 @@ const styles = StyleSheet.create({
   },
   typeNote: { marginTop: 2 },
   typeEmoji: { fontSize: 15, lineHeight: 21 },
+  menuSection: { marginTop: spacing.md, gap: 2 },
   row: { flexDirection: "row", gap: spacing.xs },
   flexHalf: { flex: 1 },
-  locationCard: {
-    borderColor: color.status.attention.base,
-    borderWidth: 1.5,
-  },
-  locationBtn: { marginTop: spacing.xs },
+  grow: { flex: 1 },
+  pinnedRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  locationBtn: { marginTop: spacing.xs, marginBottom: spacing.xs },
 });

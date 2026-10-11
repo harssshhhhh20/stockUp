@@ -13,13 +13,24 @@ import { BroadcastRecipientSummary, MerchantOfferItemStatus } from "../../api/ty
 import { color, radius, spacing } from "../../theme/tokens";
 import { contentWidth } from "../../theme/layoutStyles";
 import { ApiError } from "../../api/client";
+import { useAuth } from "../../state/AuthContext";
+import { unitLabel } from "../../lib/units";
 
 type Answer = { status: MerchantOfferItemStatus; availableQuantity: string };
 
-const CHOICES: { key: MerchantOfferItemStatus; label: string; tone: "positive" | "attention" | "urgent" }[] = [
+type Choice = { key: MerchantOfferItemStatus; label: string; tone: "positive" | "attention" | "urgent" };
+
+const SHOP_CHOICES: Choice[] = [
   { key: "AVAILABLE", label: "Have it", tone: "positive" },
   { key: "PARTIAL", label: "Some", tone: "attention" },
   { key: "NOT_AVAILABLE", label: "None", tone: "urgent" },
+];
+
+// A kitchen doesn't "have" a dish in stock; it can or can't make it.
+const KITCHEN_CHOICES: Choice[] = [
+  { key: "AVAILABLE", label: "Can make", tone: "positive" },
+  { key: "PARTIAL", label: "Fewer", tone: "attention" },
+  { key: "NOT_AVAILABLE", label: "Can't", tone: "urgent" },
 ];
 
 export function RespondToRequestScreen() {
@@ -27,6 +38,9 @@ export function RespondToRequestScreen() {
   const route = useRoute<any>();
   const { recipientId } = route.params as { recipientId: string };
   const toast = useToast();
+  const { store } = useAuth();
+  const kitchen = store?.businessType === "RESTAURANT";
+  const CHOICES = kitchen ? KITCHEN_CHOICES : SHOP_CHOICES;
 
   const [request, setRequest] = useState<BroadcastRecipientSummary | null>(null);
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
@@ -101,8 +115,8 @@ export function RespondToRequestScreen() {
   return (
     <View style={styles.flex}>
       <AppBar
-        title="What can you supply?"
-        subtitle="Tap for each item, then send"
+        title={kitchen ? "What can you make?" : "What can you supply?"}
+        subtitle={kitchen ? "Tap for each dish, then send" : "Tap for each item, then send"}
         onBack={() => nav.goBack()}
       />
       <ScrollView contentContainerStyle={[styles.content, contentWidth.column]} showsVerticalScrollIndicator={false}>
@@ -124,12 +138,18 @@ export function RespondToRequestScreen() {
                       {item.productName}
                     </Text>
                     <Text variant="mono" color={color.neutral.inkMuted}>
-                      {item.quantity} {item.unit.toLowerCase()}
+                      {item.quantity} {unitLabel(item.unit)}
                     </Text>
                   </View>
                   {item.brand ? (
                     <Text variant="bodySm" color={color.neutral.inkFaint}>
                       Prefers {item.brand}
+                    </Text>
+                  ) : null}
+                  {/* Cooking instructions on food orders ("less spicy"). */}
+                  {item.notes ? (
+                    <Text variant="bodySm" color={color.status.attention.strong}>
+                      “{item.notes}”
                     </Text>
                   ) : null}
 

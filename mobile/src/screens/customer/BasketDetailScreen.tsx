@@ -18,6 +18,7 @@ import { basketStatus, offerItemStatus } from "../../theme/statusMap";
 import { color, radius, spacing } from "../../theme/tokens";
 import { contentWidth } from "../../theme/layoutStyles";
 import { ApiError } from "../../api/client";
+import { unitLabel } from "../../lib/units";
 
 export function BasketDetailScreen() {
   const nav = useNavigation<any>();
@@ -113,7 +114,7 @@ export function BasketDetailScreen() {
                       {item.productName}
                     </Text>
                     <Text variant="mono" color={color.neutral.inkMuted}>
-                      {item.quantity} {item.unit.toLowerCase()}
+                      {item.quantity} {unitLabel(item.unit)}
                     </Text>
                   </View>
                 ))}
@@ -121,7 +122,7 @@ export function BasketDetailScreen() {
             </Card>
 
             <Text variant="h2" style={styles.sectionTitle}>
-              Replies from shops
+              {basket.category === "FOOD" ? "Replies from restaurants" : "Replies from shops"}
             </Text>
 
             {offers === null ? (
@@ -129,9 +130,19 @@ export function BasketDetailScreen() {
             ) : offers.length === 0 ? (
               <EmptyState
                 emoji={live ? "📡" : "🤷"}
-                title={live ? "Waiting for shops" : "No replies came in"}
-                body={
+                title={
                   live
+                    ? basket.category === "FOOD"
+                      ? "Waiting for restaurants"
+                      : "Waiting for shops"
+                    : "No replies came in"
+                }
+                body={
+                  basket.category === "FOOD"
+                    ? live
+                      ? "Restaurants are looking at your order right now. Replies show up here."
+                      : "No restaurant replied before this order expired. Try again with a wider distance."
+                    : live
                     ? "Nearby shops are looking at your list right now. Replies show up here."
                     : "No shop replied before this list expired. Try again with a wider distance."
                 }
@@ -179,7 +190,7 @@ export function BasketDetailScreen() {
                               {item.availableQuantity != null && requested ? (
                                 <Text variant="mono" color={color.status.attention.strong}>
                                   {item.availableQuantity} of {requested.quantity}{" "}
-                                  {requested.unit.toLowerCase()}
+                                  {unitLabel(requested.unit)}
                                 </Text>
                               ) : null}
                               <StatusPill status={st.status} label={st.label} dot={false} />

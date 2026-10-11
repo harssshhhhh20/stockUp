@@ -48,6 +48,9 @@ public class SecurityConfig {
                                 "/api/v1/auth/**"
                         ).permitAll()
 
+                        // Menu card photos, so <Image> can load them without a token.
+                        .requestMatchers(HttpMethod.GET, "/api/v1/stores/*/menu-images/*").permitAll()
+
                         .requestMatchers("/api/v1/admin/**").hasAuthority("ADMIN")
 
                         .anyRequest().authenticated()

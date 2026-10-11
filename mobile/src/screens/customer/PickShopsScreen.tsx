@@ -9,7 +9,7 @@ import { EmptyState } from "../../components/EmptyState";
 import { BharosaBadge } from "../../components/BharosaBadge";
 import { ReputationBanner } from "../../components/ReputationBanner";
 import { DiscoveryApi } from "../../api/endpoints";
-import { NearbyStore } from "../../api/types";
+import { BasketCategory, NearbyStore } from "../../api/types";
 import { useLocation } from "../../state/useLocation";
 import { color, radius, spacing } from "../../theme/tokens";
 import { contentWidth } from "../../theme/layoutStyles";
@@ -24,7 +24,11 @@ import { contentWidth } from "../../theme/layoutStyles";
 export function PickShopsScreen() {
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { selected: initial = [] } = (route.params ?? {}) as { selected?: string[] };
+  const { selected: initial = [], category = "GROCERY" } = (route.params ?? {}) as {
+    selected?: string[];
+    category?: BasketCategory;
+  };
+  const food = category === "FOOD";
 
   const { coords, status: locationStatus, request: requestLocation } = useLocation();
   const [stores, setStores] = useState<NearbyStore[] | null>(null);
@@ -33,11 +37,13 @@ export function PickShopsScreen() {
   const load = useCallback(async () => {
     if (!coords) return;
     try {
-      setStores(await DiscoveryApi.nearby(coords.latitude, coords.longitude, 5000));
+      const nearby = await DiscoveryApi.nearby(coords.latitude, coords.longitude, 5000);
+      // Only shops that can answer this kind of request; the server enforces it too.
+      setStores(nearby.filter((s) => (s.businessType === "RESTAURANT") === food));
     } catch {
       setStores([]);
     }
-  }, [coords]);
+  }, [coords, food]);
 
   React.useEffect(() => {
     load();
@@ -52,7 +58,7 @@ export function PickShopsScreen() {
   return (
     <View style={styles.flex}>
       <AppBar
-        title="Choose shops"
+        title={food ? "Choose restaurants" : "Choose shops"}
         subtitle="Ranked by how reliably they deliver"
         onBack={() => nav.goBack()}
       />
@@ -72,8 +78,8 @@ export function PickShopsScreen() {
           <ActivityIndicator style={styles.loader} color={color.brand[500]} />
         ) : stores.length === 0 ? (
           <EmptyState
-            emoji="🏪"
-            title="No shops nearby yet"
+            emoji={food ? "🍽️" : "🏪"}
+            title={food ? "No restaurants nearby yet" : "No shops nearby yet"}
             body="StockUp works best once a few shops in your area have joined."
           />
         ) : (
@@ -113,11 +119,15 @@ export function PickShopsScreen() {
           <Button
             label={
               selected.length === 0
-                ? "Pick at least one shop"
+                ? food
+                  ? "Pick at least one restaurant"
+                  : "Pick at least one shop"
+                : food
+                ? `Order from ${selected.length} restaurant${selected.length === 1 ? "" : "s"}`
                 : `Ask ${selected.length} shop${selected.length === 1 ? "" : "s"}`
             }
             disabled={selected.length === 0}
-            onPress={() => nav.navigate("CreateBasket", { storeIds: selected })}
+            onPress={() => nav.navigate("CreateBasket", { storeIds: selected, category })}
           />
         </View>
       ) : null}

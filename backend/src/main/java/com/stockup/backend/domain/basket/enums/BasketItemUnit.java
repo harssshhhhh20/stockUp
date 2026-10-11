@@ -22,6 +22,16 @@ public enum BasketItemUnit {
 
     LITRE,
 
-    ML
+    ML,
+
+    // Restaurant portions. PIECE above covers rotis, samosas and the like.
+
+    PLATE,
+
+    HALF_PLATE,
+
+    BOWL,
+
+    GLASS
 
 }

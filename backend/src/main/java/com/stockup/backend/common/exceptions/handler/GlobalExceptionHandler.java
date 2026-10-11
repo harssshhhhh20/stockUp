@@ -110,6 +110,17 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Object>> handleUploadTooLarge(
+            org.springframework.web.multipart.MaxUploadSizeExceededException ex
+    ) {
+        return ApiResponseFactory.failure(
+                HttpStatus.PAYLOAD_TOO_LARGE,
+                ResponseMessage.BAD_REQUEST,
+                List.of(new ApiError(null, "That photo is too large. Keep each page under 5 MB."))
+        );
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleUnexpectedException(Exception exception) {
 

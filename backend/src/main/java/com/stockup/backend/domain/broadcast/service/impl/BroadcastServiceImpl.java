@@ -2,6 +2,12 @@ package com.stockup.backend.domain.broadcast.service.impl;
 
 import com.stockup.backend.common.security.CurrentUserService;
 import com.stockup.backend.domain.basket.entity.Basket;
+import java.util.Map;
+import java.math.BigDecimal;
+import com.stockup.backend.domain.reservation.repository.ReservationRepository;
+import com.stockup.backend.domain.reservation.entity.enums.ReservationStatus;
+import com.stockup.backend.domain.pricing.service.SuggestedPricing;
+import com.stockup.backend.domain.basket.entity.BasketItem;
 import com.stockup.backend.domain.basket.entity.BasketTargetStore;
 import com.stockup.backend.domain.broadcast.dto.BroadcastRecipientSummaryResponse;
 import com.stockup.backend.domain.broadcast.entity.Broadcast;
@@ -39,6 +45,8 @@ public class BroadcastServiceImpl implements BroadcastService {
     private final BroadcastRepository broadcastRepository;
     private final StoreRepository storeRepository;
     private final BroadcastRecipientRepository broadcastRecipientRepository;
+    private final SuggestedPricing suggestedPricing;
+    private final ReservationRepository reservationRepository;
     private final CurrentUserService currentUserService;
     private final MerchantRepository merchantRepository;
     private final NotificationService notificationService;
@@ -89,12 +97,16 @@ public class BroadcastServiceImpl implements BroadcastService {
                     .map(BasketTargetStore::getStore)
                     .toList();
 
+            // Only shops that can answer it: restaurants for food, the rest
+            // for groceries. Picked stores were checked when the basket was made.
             case NEARBY ->
                     storeRepository.findNearbyStores(
                             basket.getBasketLatitude(),
                             basket.getBasketLongitude(),
                             basket.getSearchRadiusMeters()
-                    );
+                    ).stream()
+                            .filter(store -> basket.getCategory().accepts(store.getBusinessType()))
+                            .toList();
         };
     }
 
@@ -151,6 +163,29 @@ public class BroadcastServiceImpl implements BroadcastService {
         return recipients.stream()
                 .map(recipient -> {
                     Basket basket = recipient.getBroadcast().getBasket();
+                    List<BasketItem> items = basket.getItems();
+
+                    // Fill the price column before the shopkeeper ever sees it.
+                    Map<UUID, SuggestedPricing.Suggestion> suggestions =
+                            suggestedPricing.suggestFor(recipient.getStore(), items);
+
+                    BigDecimal suggestedTotal = null;
+                    for (BasketItem item : items) {
+                        SuggestedPricing.Suggestion s = suggestions.get(item.getId());
+                        if (s != null && s.isKnown()) {
+                            BigDecimal line = s.unitPrice().multiply(item.getQuantity());
+                            suggestedTotal = suggestedTotal == null ? line : suggestedTotal.add(line);
+                        }
+                    }
+
+                    // How well this shopper is known HERE. A regular down the
+                    // road is a stranger at this counter.
+                    int ordersWithThisShop = reservationRepository
+                            .countByCustomerAndStoreAndStatus(
+                                    basket.getCustomer(),
+                                    recipient.getStore(),
+                                    ReservationStatus.COMPLETED);
+
                     return new BroadcastRecipientSummaryResponse(
                             recipient.getId(),
                             basket.getId(),
@@ -158,16 +193,24 @@ public class BroadcastServiceImpl implements BroadcastService {
                             recipient.getCreatedAt(),
                             recipient.getViewedAt(),
                             basket.getExpiresAt(),
-                            basket.getItems().stream()
-                                    .map(item -> new BroadcastRecipientSummaryResponse.Item(
-                                            item.getId(),
-                                            item.getProductName(),
-                                            item.getQuantity(),
-                                            item.getUnit(),
-                                            item.getBrand(),
-                                            item.getNotes()
-                                    ))
-                                    .toList()
+                            items.stream()
+                                    .map(item -> {
+                                        SuggestedPricing.Suggestion s = suggestions.get(item.getId());
+                                        return new BroadcastRecipientSummaryResponse.Item(
+                                                item.getId(),
+                                                item.getProductName(),
+                                                item.getQuantity(),
+                                                item.getUnit(),
+                                                item.getBrand(),
+                                                item.getNotes(),
+                                                item.getExpectedUnitPrice(),
+                                                s == null ? null : s.unitPrice(),
+                                                s == null ? "NONE" : s.source().name()
+                                        );
+                                    })
+                                    .toList(),
+                            suggestedTotal,
+                            ordersWithThisShop
                     );
                 })
                 .toList();

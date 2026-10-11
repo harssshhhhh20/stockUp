@@ -8,12 +8,14 @@ import { StatusPill } from "../../components/StatusPill";
 import { LiveTimer } from "../../components/LiveTimer";
 import { BharosaRing } from "../../components/BharosaRing";
 import { EmptyState } from "../../components/EmptyState";
+import { MenuCardManager } from "../../components/MenuCardManager";
 import { FadeIn, PressableScale, Pulse, useCountUp } from "../../components/Motion";
 import { BroadcastApi, OrderApi, ReservationApi } from "../../api/endpoints";
 import { BroadcastRecipientSummary, MerchantStats, Reservation } from "../../api/types";
 import { useAuth } from "../../state/AuthContext";
 import { color, font, radius, spacing } from "../../theme/tokens";
 import { contentWidth } from "../../theme/layoutStyles";
+import { unitLabel } from "../../lib/units";
 
 /**
  * The shopkeeper's home.
@@ -136,7 +138,7 @@ export function MerchantHomeScreen() {
                             {item.productName}
                           </Text>
                           <Text variant="mono" color={color.neutral.inkMuted}>
-                            {item.quantity} {item.unit.toLowerCase()}
+                            {item.quantity} {unitLabel(item.unit)}
                           </Text>
                         </View>
                       ))}
@@ -186,6 +188,17 @@ export function MerchantHomeScreen() {
               </FadeIn>
             ))}
           </>
+        ) : null}
+
+        {store?.businessType === "RESTAURANT" ? (
+          <FadeIn index={9}>
+            <Text variant="h2" style={styles.sectionTitle}>
+              Menu card
+            </Text>
+            <Card elevated>
+              <MenuCardManager storeId={store.storeId} />
+            </Card>
+          </FadeIn>
         ) : null}
 
         {stats ? (

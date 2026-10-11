@@ -1,5 +1,6 @@
 package com.stockup.backend.domain.basket.dto.request;
 
+import com.stockup.backend.domain.basket.enums.BasketCategory;
 import com.stockup.backend.domain.basket.enums.BasketTargetMode;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
@@ -12,6 +13,9 @@ import java.util.List;
 import java.util.UUID;
 
 public record CreateBasketRequest(
+
+        /** Null from older app versions, which only ever asked for groceries. */
+        BasketCategory category,
 
         @NotNull
         BasketTargetMode targetMode,

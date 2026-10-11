@@ -92,10 +92,20 @@ export function HomeScreen() {
         </FadeIn>
 
         <FadeIn index={2}>
-          <Button
-            label="+  Ask nearby shops"
-            onPress={() => nav.navigate("CreateBasket")}
-          />
+          <View style={styles.actions}>
+            <Button
+              label="🛒  Ask nearby shops"
+              onPress={() => nav.navigate("CreateBasket", { category: "GROCERY" })}
+            />
+            {/* Only offered where there's a restaurant to answer it. */}
+            {stores?.some((s) => s.businessType === "RESTAURANT") ? (
+              <Button
+                label="🍽️  Order from restaurants"
+                variant="secondary"
+                onPress={() => nav.navigate("CreateBasket", { category: "FOOD" })}
+              />
+            ) : null}
+          </View>
         </FadeIn>
 
         {/* Only nag when we genuinely have nowhere to search from. */}
@@ -134,8 +144,17 @@ export function HomeScreen() {
           stores.map((s, i) => (
             <FadeIn key={s.storeId} index={4 + i}>
               <PressableScale
-                onPress={() => nav.navigate("PickShops", { selected: [s.storeId] })}
-                accessibilityLabel={`${s.name}, Bharosa ${s.bharosa}`}
+                onPress={() =>
+                  // What you want from a restaurant is its menu, not a list to send.
+                  s.businessType === "RESTAURANT"
+                    ? nav.navigate("StoreMenu", { storeId: s.storeId, storeName: s.name })
+                    : nav.navigate("PickShops", { selected: [s.storeId], category: "GROCERY" })
+                }
+                accessibilityLabel={
+                  s.businessType === "RESTAURANT"
+                    ? `${s.name}, restaurant, Bharosa ${s.bharosa}. Opens the menu.`
+                    : `${s.name}, Bharosa ${s.bharosa}`
+                }
               >
                 <Card elevated>
                   {s.tags?.length ? <ReputationBanner tags={s.tags} /> : null}
@@ -148,6 +167,12 @@ export function HomeScreen() {
                       {s.distanceKm} km
                     </Text>
                   </View>
+
+                  {s.businessType === "RESTAURANT" ? (
+                    <Text variant="bodySm" weight="semibold" color={color.brand[600]}>
+                      🍽️ Restaurant · tap to see the menu
+                    </Text>
+                  ) : null}
 
                   {/* The 'why', derived from behaviour — never a shop's own claim. */}
                   <Text variant="bodySm" color={color.neutral.inkMuted}>
@@ -211,4 +236,5 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   loader: { marginTop: spacing.xl },
+  actions: { gap: spacing.xs },
 });

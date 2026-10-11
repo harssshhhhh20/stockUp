@@ -9,6 +9,7 @@ import com.stockup.backend.domain.basket.dto.response.BasketItemResponse;
 import com.stockup.backend.domain.basket.dto.response.CreateBasketResponse;
 import com.stockup.backend.domain.basket.entity.Basket;
 import com.stockup.backend.domain.basket.enums.BasketStatus;
+import com.stockup.backend.domain.basket.enums.BasketCategory;
 import com.stockup.backend.domain.basket.enums.BasketTargetMode;
 
 import com.stockup.backend.domain.basket.exception.InvalidBasketRequestException;
@@ -50,8 +51,12 @@ public class BasketServiceImpl implements BasketService {
 
         validateCreateBasketRequest(request);
 
+        BasketCategory category =
+                request.category() == null ? BasketCategory.GROCERY : request.category();
+
         Basket basket = Basket.create(
                 customer,
+                category,
                 request.targetMode(),
                 request.searchRadiusMeters(),
                 request.basketLatitude(),
@@ -64,7 +69,8 @@ public class BasketServiceImpl implements BasketService {
                     item.quantity(),
                     item.unit(),
                     item.brand(),
-                    item.notes()
+                    item.notes(),
+                    item.expectedUnitPrice()
             );
         }
 
@@ -75,6 +81,14 @@ public class BasketServiceImpl implements BasketService {
             if (stores.size() != request.storeIds().size()) {
                 throw new InvalidBasketRequestException(
                         "One or more selected stores do not exist."
+                );
+            }
+
+            if (!stores.stream().allMatch(s -> category.accepts(s.getBusinessType()))) {
+                throw new InvalidBasketRequestException(
+                        category == BasketCategory.FOOD
+                                ? "Food orders can only go to restaurants."
+                                : "Grocery lists can't go to restaurants."
                 );
             }
 
@@ -118,7 +132,8 @@ public class BasketServiceImpl implements BasketService {
                         basket.getCreatedAt(),
                         basket.getExpiresAt(),
                         basket.getItems().size(),
-                        basket.getTargetMode()
+                        basket.getTargetMode(),
+                        basket.getCategory()
                 ))
                 .toList();
     }
@@ -154,7 +169,8 @@ public class BasketServiceImpl implements BasketService {
                                 item.getBrand(),
                                 item.getNotes()
                         ))
-                        .toList()
+                        .toList(),
+                basket.getCategory()
         );
     }
 }

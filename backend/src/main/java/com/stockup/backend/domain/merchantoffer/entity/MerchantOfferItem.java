@@ -17,12 +17,27 @@ import java.util.Objects;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class MerchantOfferItem extends AuditableEntity {
 
+    /** What this shop charges per unit for this line. Null if it didn't quote. */
+    @Column(name = "quoted_unit_price", precision = 10, scale = 2)
+    private BigDecimal quotedUnitPrice;
+
     MerchantOfferItem(
             MerchantOffer merchantOffer,
             BasketItem basketItem,
             MerchantOfferItemStatus status,
             BigDecimal availableQuantity
     ) {
+        this(merchantOffer, basketItem, status, availableQuantity, null);
+    }
+
+    MerchantOfferItem(
+            MerchantOffer merchantOffer,
+            BasketItem basketItem,
+            MerchantOfferItemStatus status,
+            BigDecimal availableQuantity,
+            BigDecimal quotedUnitPrice
+    ) {
+        this.quotedUnitPrice = quotedUnitPrice;
         this.merchantOffer = Objects.requireNonNull(merchantOffer);
         this.basketItem = Objects.requireNonNull(basketItem);
         this.status = Objects.requireNonNull(status);

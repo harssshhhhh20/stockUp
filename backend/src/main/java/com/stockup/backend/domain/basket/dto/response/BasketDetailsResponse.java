@@ -1,5 +1,6 @@
 package com.stockup.backend.domain.basket.dto.response;
 
+import com.stockup.backend.domain.basket.enums.BasketCategory;
 import com.stockup.backend.domain.basket.enums.BasketStatus;
 import com.stockup.backend.domain.basket.enums.BasketTargetMode;
 import java.math.BigDecimal;
@@ -25,7 +26,9 @@ public record BasketDetailsResponse(
 
         Instant expiresAt,
 
-        List<BasketItemResponse> items
+        List<BasketItemResponse> items,
+
+        BasketCategory category
 
 ) {
 }
